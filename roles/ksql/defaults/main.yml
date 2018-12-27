@@ -1,0 +1,16 @@
+ksql:
+  config_file: /etc/ksql/ksql-server.properties
+  service_name: confluent-ksql
+  systemd_configuration: /usr/lib/etc/systemd/system/confluent-ksql.service
+  user: cp-ksql
+  group: confluent
+  environment:
+    KSQL_HEAP_OPTS: "-Xmx3g"
+  config:
+    application.id: ksql-server
+    listener_port: 8088
+    ssl.endpoint.identification.algorithm: ""
+kafka:
+   config:
+     # if this gets changed it needs to be changed under kafka defaults
+     broker_port: '9092'

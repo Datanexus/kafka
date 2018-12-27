@@ -1,0 +1,37 @@
+control:
+  center:
+    user: cp-control-center
+    group: confluent
+    config_file: /etc/confluent-control-center/control-center-production.properties
+    service_name: confluent-control-center
+    systemd_configuration: /usr/lib/systemd/system/confluent-control-center.service
+    environment:
+      CONTROL_CENTER_HEAP_OPTS: "-Xmx6g"
+    config:
+      id: 1
+      confluent.controlcenter.streams.num.stream.threads: 8
+      confluent_controlcenter_data_dir: /var/lib/confluent/control-center
+      confluent_license: /etc/confluent-control-center/license
+      confluent.controlcenter.streams.ssl.endpoint.identification.algorithm: ""
+      confluent.controlcenter.rest.ssl.endpoint.identification.algorithm: ""
+zookeeper:
+  config:
+    # this needs to be quoted as a string for concatenation purposes
+    # if this gets changed it needs to be changed under zookeeper defaults
+    port: '2181'
+kafkabroker:
+  config:
+    # if this gets changed it needs to be changed under kafka defaults
+    broker_port: '9092'
+ksql:
+  config:
+    listener_port: '8088'
+schema:
+  registry:
+    config:
+      schema_registry_listener_port: '8081'
+connect:
+  distributed:
+    config:
+      listener_port: '8083'
+      

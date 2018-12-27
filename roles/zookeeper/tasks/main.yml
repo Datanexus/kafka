@@ -1,0 +1,102 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+---
+- block:
+        
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} tickTime
+    lineinfile:
+      backrefs: no
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^tickTime='
+      line: "tickTime={{ zookeeper.config.tickTime }}"
+    # notify: restart zookeeper
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} dataDir
+    lineinfile:
+      backrefs: yes
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^dataDir='
+      line: "dataDir={{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}"
+    # notify: restart zookeeper
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} clientPort
+    lineinfile:
+      backrefs: yes
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^clientPort='
+      line: "clientPort={{ zookeeper.config.port }}"
+    # notify: restart zookeeper
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} initLimit
+    lineinfile:
+      backrefs: no
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^initLimit='
+      line: "initLimit={{ zookeeper.config.initLimit }}"
+    # notify: restart zookeeper
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} syncLimit
+    lineinfile:
+      backrefs: no
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^syncLimit='
+      line: "syncLimit={{ zookeeper.config.syncLimit }}"
+    # notify: restart zookeeper
+    
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} autopurge.snapRetainCount
+    lineinfile:
+      backrefs: no
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^autopurge.snapRetainCount='
+      line: "autopurge.snapRetainCount={{ zookeeper.config.autopurge_snapRetainCount }}"
+    # notify: restart zookeeper
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} autopurge.purgeInterval
+    lineinfile:
+      backrefs: no
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^autopurge.purgeInterval='
+      line: "autopurge.purgeInterval={{ zookeeper.config.autopurge_purgeInterval }}"
+    # notify: restart zookeeper
+
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ ansible_play_hosts | length }} {{ zookeeper.service_name }} hosts
+    lineinfile:
+      backrefs: no
+      path: "{{ zookeeper.config_file }}"
+      regexp: "^server.{{ item.0 + 1 | int }}="
+      line: "server.{{ item.0 + 1 | int }}={{ item.1 }}:2888:3888"
+    with_indexed_items: "{{ ansible_play_hosts }}"
+    # notify: restart zookeeper
+
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} myid file
+    template:
+      src: myid.j2
+      dest: "{{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}/myid"
+      mode: 0644
+      owner: "{{ zookeeper.user }}"
+      group: "{{ zookeeper.group }}"
+    # notify: restart zookeeper
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | tuning {{ zookeeper.service_name }} JVM
+    blockinfile:
+      path: "{{ zookeeper.systemd_configuration }}"
+      marker: "# {mark} DataNexus managed tuning"
+      insertafter: "^Restart="
+      block: |
+        Environment="KAFKA_HEAP_OPTS={{ zookeeper.environment.KAFKA_HEAP_OPTS }}"
+    notify:
+      - reload systemd
+      
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | starting {{ zookeeper.service_name }}
+    systemd:
+      name: "{{ zookeeper.service_name }}"
+      state: restarted
+  
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
+- name: CONFLUENT OVERLAY (ZOOKEEPER) | pausing for {{ zookeeper.service_name }} initialization
+  pause:
+    seconds: 30
+    

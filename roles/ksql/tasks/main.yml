@@ -1,0 +1,45 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+--- 
+- import_tasks: interface-facts.yml
+
+- block:
+  
+  - name: CONFLUENT OVERLAY (KSQL) | configuring bootstrap servers for distributed connectors
+    lineinfile:
+      backrefs: yes
+      path: "{{ ksql.config_file }}"
+      regexp: '^bootstrap.servers='
+      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+    
+  - name: CONFLUENT OVERLAY (KSQL) | configuring kafka broker hosts
+    lineinfile:
+      backrefs: yes
+      path: "{{ ksql.config_file }}"
+      regexp: '^listeners='
+      line: "listeners=http://{{ ksql_interface_ipv4 }}:{{ ksql.config.listener_port }}"
+    
+  become: yes
+  
+- block:
+  
+  - name: CONFLUENT OVERLAY (KSQL) | configuring {{ ksql.service_name }} JVM 
+    blockinfile:
+      path: "{{ ksql.systemd_configuration }}"
+      marker: "# {mark} DataNexus managed logs"
+      insertafter: "^Restart="
+      block: |
+        Environment="KSQL_HEAP_OPTS={{ ksql.environment.KSQL_HEAP_OPTS }}"
+    notify:
+      - reload systemd
+      - restart ksql
+      
+  - name: CONFLUENT OVERLAY (KSQL) | starting {{ ksql.service_name }}
+    systemd:
+      name: "{{ ksql.service_name }}"
+      state: restarted
+        
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  

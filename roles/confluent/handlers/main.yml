@@ -1,0 +1,9 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+# handlers used during confluent platform installation
+---
+- name: yum-clean-all
+  command: /usr/bin/yum clean all
+  args:
+      warn: no
+  become: true

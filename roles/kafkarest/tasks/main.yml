@@ -1,0 +1,47 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+--- 
+- import_tasks: interface-facts.yml
+
+- block:
+  
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring kafka rest proxy group id
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafkarest.config_file }}"
+      regexp: '^#id='
+      line: "id={{ kafkarest.config.group_id }}"
+    # notify: restart kafkarest
+    
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring kafka brokers for rest proxy
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafkarest.config_file }}"
+      regexp: '^bootstrap.servers='
+      line: "bootstrap.servers=PLAINTEXT://{{ groups['kafka_public'] | join(':' + kafkabroker.config.broker_port + ',PLAINTEXT://') }}:{{ kafkabroker.config.broker_port }}"
+    # notify: restart kafkarest
+    
+  become: yes
+  
+- block:
+  
+  - name: CONFLUENT OVERLAY (KAFKA REST) | configuring environment for logs 
+    blockinfile:
+      path: "{{ kafkarest.systemd_configuration }}"
+      marker: "# {mark} DataNexus managed logs"
+      insertafter: "^Restart="
+      block: |
+        Environment="LOG_DIR={{ kafkarest.environment.LOG_DIR }}"
+    notify:
+      - reload systemd
+      - restart kafkarest
+      
+  - name: CONFLUENT OVERLAY (KAFKA REST) | starting {{ kafkareset.service_name }}
+    systemd:
+      name: "{{ kafkarest.service_name }}"
+      state: restarted
+        
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  

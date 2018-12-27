@@ -1,0 +1,29 @@
+# platform ports
+control:
+  center:
+    config:
+      ui: '9029'
+zookeeper:
+  config:
+    port: '2181'
+    peers: '2888'
+    leaders: '3888'
+kafka:
+  broker:
+    config:
+      plaintext: '9092'
+      ssl: '9091'
+  rest:
+    config:
+      rest_port: '8082'
+ksql:
+  config:
+    listener_port: '8088'
+schema:
+  registry:
+    config:
+      listener_port: '8081'
+connect:
+  distributed:
+    config:
+      listener_port: '8083'

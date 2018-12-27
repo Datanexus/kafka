@@ -1,0 +1,16 @@
+kafkarest:
+  user: cp-kafka-rest
+  group: confluent
+  config_file: /etc/kafka-rest/kafka-rest.properties
+  service_name: confluent-kafka-rest
+  systemd_configuration: /usr/lib/systemd/system/confluent-kafka-rest.service
+  config:
+    rest_port: 8082
+    group_id: kafka-rest-server 
+    client.ssl.endpoint.identification.algorithm: ""
+  environment:
+    LOG_DIR: /var/log/kafka-rest
+kafkabroker:
+  config:
+    # this needs to be quoted as a string for concatenation purposes
+    broker_port: '9092'

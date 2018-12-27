@@ -1,0 +1,19 @@
+zookeeper:
+  user: cp-kafka
+  group: confluent
+  config_file: /etc/kafka/zookeeper.properties
+  service_name: confluent-zookeeper
+  systemd_configuration: /usr/lib/systemd/system/confluent-zookeeper.service
+  config:
+    maxClientCnxns: 0
+    initLimit: 5
+    syncLimit: 2
+    tickTime: 2000
+    autopurge_snapRetainCount: 10
+    autopurge_purgeInterval: 1
+    dataDir: /var/lib/zookeeper
+    # this needs to be quoted as a string for concatenation purposes
+    # if this gets changed it all needs to be changed under kafka defaults
+    port: '2181'
+  environment:
+    KAFKA_HEAP_OPTS: "-Xmx1000M"

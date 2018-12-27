@@ -1,0 +1,47 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+---
+- import_tasks: interface-facts.yml
+
+- block:
+  
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | configuring schema registry listeners
+    lineinfile:
+      backrefs: yes
+      path: "{{ schema.registry.config_file }}"
+      regexp: '^listeners='
+      line: "listeners=http://{{ registry_interface_ipv4 }}:{{ schema.registry.config.schema_registry_listener_port }}"
+    # notify: restart registry
+
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | configuring schema registry zookeeper
+    lineinfile:
+      backrefs: yes
+      path: "{{ schema.registry.config_file }}"
+      regexp: '^kafkastore.connection.url='
+      line: "kafkastore.connection.url={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+    # notify: restart registry
+
+  become: yes
+  
+- block:
+  
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | tuning {{ schema.registry.service_name }} JVM
+    blockinfile:
+      path: "{{ schema.registry.systemd_configuration }}"
+      marker: "# {mark} DataNexus managed tuning"
+      insertafter: "^Restart="
+      block: |
+        Environment="SCHEMA_REGISTRY_HEAP_OPTS={{ schema.registry.environment.SCHEMA_REGISTRY_HEAP_OPTS }}"
+    notify:
+      - reload systemd
+      - restart registry
+      
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | starting {{ schema.registry.service_name }}
+    systemd:
+      name: "{{ schema.registry.service_name }}"
+      state: restarted
+        
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  

@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved. 
+# confluent platform deployment wrapper
+
+export application=confluent   # application overlay to deploy
+: "${AWS_PROFILE:=datanexus}" && export AWS_PROFILE=$AWS_PROFILE    # sets this to a reasonable ~/.aws/credentials default
+: "${AZURE_PROFILE:=datanexus}" && export AZURE_PROFILE="$AZURE_PROFILE"    # sets this to a reasonable ~/.azure/credentials default
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
+    printf "Usage:   deploy [-h]\\thelp\\n"
+    # printf "\\t deploy [INVENTORY TENANT PROJECT CLOUD REGION DOMAIN CLUSTER SSH_USER KEY_PATH]\\tdeploy %s overlay with the specified values\\n" "$application"
+    printf "\\t deploy [INVENTORY TENANT PROJECT CLOUD REGION DOMAIN CLUSTER SSH_USER KEY_PATH]\\tdeploy %s overlay with the specified values\\n" "$application"
+    printf "Example: deploy datanexus demo aws us-east-1 development none\\n"
+    exit 0
+fi
+
+./provision-confluent --inventory=$1 --tags "$application" -e "tenant=$2 project=$3 cloud=$4 region=$5 domain=$6 cluster=$7"

@@ -1,0 +1,93 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+# configure confluent controlcenter
+---
+- block:
+  
+  - name: CONFLUENT OVERLAY (CONTROLCENTER) | configuring bootstrap servers
+    lineinfile:
+      path: "{{ control.center.config_file }}"
+      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafkabroker.config.broker_port + ',') }}:{{ kafkabroker.config.broker_port }}"
+      insertafter: '^#bootstrap.servers='
+      
+  - name: CONFLUENT OVERLAY (CONTROLCENTER) | configuring control center data directory
+    lineinfile:
+      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^confluent.controlcenter.data.dir='
+      line: "confluent.controlcenter.data.dir={{ controlcenter_data_dir | default(control.center.config.confluent_controlcenter_data_dir) }}"
+  
+  - name: CONFLUENT OVERLAY (CONTROLCENTER) | creating control center data directory
+    file:
+      path: "{{ controlcenter_data_dir | default(control.center.config.confluent_controlcenter_data_dir) }}"
+      state: directory
+      mode: 0755
+      owner: "{{ control.center.user }}"
+      group:  "{{ control.center.group }}"
+  
+  - name: CONFLUENT OVERLAY (CONTROLCENTER) | configuring control center license
+    lineinfile:
+      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^#confluent.controlcenter.license='
+      line: "#confluent.controlcenter.license={{ controlcenter_license | default(control.center.config.confluent_license) }}"
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring zookeeper hosts
+    lineinfile:
+      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^#zookeeper.connect='
+      line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring control center id
+    lineinfile:
+      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^#confluent.controlcenter.id='
+      line: "confluent.controlcenter.id={{ control.center.config.id }}"
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring distributed connect hosts
+    lineinfile:
+      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^#confluent.controlcenter.connect.cluster='
+      line: "confluent.controlcenter.connect.cluster=http://{{ groups['kafka_connect_public'] | join(':' + connect.distributed.config.listener_port + ',http://') }}:{{ connect.distributed.config.listener_port }}"
+    when: "'kafka_connect_public' in groups | default([])"
+          
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring ksql hosts
+    lineinfile:
+      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^#confluent.controlcenter.ksql.url='
+      line: "confluent.controlcenter.ksql.url=http://{{ groups['kafka_ksql_public'] | join(':' + ksql.config.listener_port + ',http://') }}:{{ ksql.config.listener_port }}"
+    when: "'kafka_ksql_public' in groups | default([])"
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring schema registry hosts
+    lineinfile:
+      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^#confluent.controlcenter.schema.registry.url='
+      line: "confluent.controlcenter.schema.registry.url=http://{{ groups['registry'] | join(':' + schema.registry.config.schema_registry_listener_port + ',http://') }}:{{ schema.registry.config.schema_registry_listener_port }}"
+    when: "'registry' in groups | default([])"
+  
+  become: yes
+  
+- block:
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | tuning {{ kafka.service_name }} JVM
+    blockinfile:
+      path: "{{ control.center.systemd_configuration }}"
+      marker: "# {mark} DataNexus managed tuning"
+      insertafter: "^Restart="
+      block: |
+        Environment="CONTROL_CENTER_HEAP_OPTS={{ control.center.environment.CONTROL_CENTER_HEAP_OPTS }}"
+    notify:
+      - reload systemd
+      
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | starting {{ kafka.service_name }}
+    systemd:
+      name: "{{ control.center.service_name }}"
+      state: restarted
+        
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

@@ -1,0 +1,25 @@
+schema:
+  registry:
+    user: cp-schema-registry
+    group: confluent
+    config_file: /etc/schema-registry/schema-registry.properties
+    service_name: confluent-schema-registry
+    systemd_configuration: /usr/lib/systemd/system/confluent-schema-registry.service
+    config:
+      schema_registry_listener_port: 8081
+      kafkastore.topic: _schemas
+      kafkastore_ssl_endpoint_identification_algorithm: ""
+    environment:
+      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
+zookeeper:
+  config:
+    # this needs to be quoted as a string for concatenation purposes
+    # if this gets changed it all needs to be changed under zookeeper and kafka defaults
+    port: '2181'
+kafka:
+  config:
+    # this needs to be quoted as a string for concatenation purposes
+    # if this gets changed it all needs to be changed under zookeeper and kafka defaults
+    broker_port: '9092'
+
+

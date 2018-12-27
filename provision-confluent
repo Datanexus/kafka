@@ -1,0 +1,203 @@
+#!/usr/bin/env ansible-playbook
+# (c) 2018 DataNexus Inc.  All Rights Reserved.
+#
+# main routine for provisioning confluent kafka
+---
+# note that the tags are not currently used, but are present for future integration into
+# the datanexus infrastructure components  
+- name: CONFLUENT OVERLAY | discovering {{ cloud }} networking
+  tags:
+    - confluent
+  hosts: localhost
+  connection: local
+  vars_files:
+    - vars/confluent.yml
+  gather_facts: no
+  tasks:
+    - include_role:
+        name: aws
+        tasks_from: discover-vpc
+      when: cloud == 'aws'
+
+    - include_role:
+        name: azure
+        tasks_from: discover-resourcegroup
+      when: cloud == 'azure'
+
+- name: CONFLUENT OVERLAY | creating {{ cloud }} security groups
+  tags:
+    - confluent
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - include_role:
+        name: aws
+        tasks_from: create-securitygroup
+      when: cloud == 'aws'
+
+- name: CONFLUENT OVERLAY | applying {{ cloud }} security groups
+  tags:
+    - confluent
+  hosts: localhost
+  connection: local
+  vars_files:
+    - vars/confluent.yml
+  gather_facts: yes
+  tasks:
+    - include_role:
+        name: aws
+        tasks_from: apply-securitygroup
+      when: cloud == 'aws'
+
+    - include_role:
+        name: azure
+        tasks_from: modify-existing-securitygroup
+      when: cloud == 'azure'
+
+# complete preflight for all host groups
+- name: CONFLUENT OVERLAY | completing preflight OS configuration
+  hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql
+  tags:
+    - confluent
+  vars_files:
+    - vars/confluent.yml
+  vars:
+      # this is semi clever; application gets set based on each host group
+      application: "{{ group_names | first }}"
+  gather_facts: yes
+  tasks:
+    - include_role:
+        name: preflight
+
+- name: CONFLUENT OVERLAY | installing confluent platform across all nodes
+  hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql
+  tags:
+    - confluent
+  vars_files:
+    - vars/confluent.yml
+  gather_facts: yes
+  tasks:
+    # here we want to configure platform or community based on confluent.yml
+    - set_fact:
+        confluent_distribution: "{{ (confluent_community  == true) | ternary('confluent-community','confluent-platform') }}"
+
+    - import_role:
+        name: confluent
+      vars:
+        confluent_platform_version: "{{ confluent_distribution }}-{{ scala_version }}"
+
+- name: CONFLUENT OVERLAY | configuring confluent zookeeper
+  hosts: zookeeper
+  tags:
+    - confluent
+  vars_files:
+    - vars/zookeeper.yml
+  gather_facts: yes
+  tasks:
+    - import_role:
+        name: zookeeper
+
+- name: CONFLUENT OVERLAY | discovering kafka broker facts
+  tags:
+    - confluent
+  hosts: kafka_broker
+  tasks:
+    - setup:
+
+- name: CONFLUENT OVERLAY | building kafka public internal host group
+  tags:
+    - confluent
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: CONFLUENT OVERLAY | building kafka public internal host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_public
+      with_items: "{{ groups['kafka_broker'] }}"
+      when: "'kafka_broker' in groups | default([])"
+
+- name: CONFLUENT OVERLAY | configuring confluent kafka
+  hosts: kafka_broker
+  tags:
+    - confluent
+  vars_files:
+    - vars/kafka.yml
+  tasks:
+    - import_role:
+        name: kafka
+
+- name: CONFLUENT OVERLAY | configuring confluent schema registry
+  hosts: registry
+  tags:
+    - confluent
+  vars_files:
+    - vars/registry.yml
+  tasks:
+    - import_role:
+        name: registry
+
+- name: CONFLUENT OVERLAY | building kafka ksql public internal host group
+  tags:
+    - confluent
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: CONFLUENT OVERLAY | building kafka ksql public internal host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_ksql_public
+      with_items: "{{ groups['kafka_ksql'] }}"
+      when: "'kafka_ksql' in groups | default([])"
+
+- name: CONFLUENT OVERLAY | building kafka connect public internal host group
+  tags:
+    - confluent
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: CONFLUENT OVERLAY | building kafka connector public internal host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_connect_public
+      with_items: "{{ groups['kafka_connect'] }}"
+      when: "'kafka_connect' in groups | default([])"
+      
+- name: CONFLUENT OVERLAY | configuring confluent controlcenter
+  hosts: controlcenter
+  tags:
+    - confluent
+  vars_files:
+    - vars/controlcenter.yml
+  gather_facts: yes
+  tasks:
+    - import_role:
+        name: controlcenter
+
+- name: CONFLUENT OVERLAY | configuring confluent kafka connect
+  hosts: kafka_connect
+  tags:
+    - confluent
+  vars_files:
+    - vars/connect.yml
+  gather_facts: yes
+  tasks:
+    - import_role:
+        name: connect
+
+- name: CONFLUENT OVERLAY | configuring confluent kafka ReST proxy
+  hosts: rest_proxy
+  tags:
+    - confluent
+  vars_files:
+    - vars/rest.yml
+  gather_facts: yes
+  tasks:
+    - import_role:
+        name: kafkarest
+
+- name: CONFLUENT OVERLAY | configuring confluent kafka ksql
+  hosts: kafka_ksql
+  tags:
+    - confluent
+  vars_files:
+    - vars/ksql.yml
+  gather_facts: yes
+  tasks:
+    - import_role:
+        name: ksql

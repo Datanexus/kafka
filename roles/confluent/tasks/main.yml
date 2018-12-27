@@ -1,0 +1,36 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+---
+- name: CONFLUENT OVERLAY | installing confluent platform public key
+  rpm_key:
+    state: present
+    key: "{{ confluent_public_key }}"
+  become: yes
+
+# CentOS / Redhat 7
+- block:
+  
+  - name: CONFLUENT OVERLAY | installing Java packages
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - epel-release-7-11
+      - "java-{{ java_version }}-openjdk"
+      - "java-{{ java_version }}-openjdk-devel"
+      
+  - name: CONFLUENT OVERLAY | configuring confluent platform repo for CentOS / Redhat
+    template:
+      src: confluent-repo.j2
+      dest: /etc/yum.repos.d/confluent.repo
+      mode: 0644
+
+  - name: CONFLUENT OVERLAY | installing {{ confluent_platform_version }}
+    package:
+      name: "{{ confluent_platform_version }}"
+      state: present
+    notify: yum-clean-all
+        
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

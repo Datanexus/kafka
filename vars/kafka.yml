@@ -1,0 +1,9 @@
+# (c) 2018 DataNexus Inc.  All Rights Reserved.
+---
+# this needs to be quoted as a string for concatenation purposes
+kafka_data_dir:
+  - '/var/lib/kafka'
+# default number of topic partitions
+num_partitions: 1
+# topic deletion
+topic_deletion: true

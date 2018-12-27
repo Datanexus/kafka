@@ -1,0 +1,243 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+--- 
+- import_tasks: interface-facts.yml
+
+- block:
+  
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring zookeeper hosts
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^zookeeper.connect='
+      line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+    # notify: restart kafka
+    
+  - name: CONFLUENT OVERLAY (KAFKA) | disabling manual {{ kafka.service_name }} ids
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^broker.id=0'
+      line: '#broker.id=0'
+    # notify: restart kafka
+ 
+  - name: CONFLUENT OVERLAY (KAFKA) | enabling dynamic {{ kafka.service_name }} ids
+    lineinfile:
+      path: "{{ kafka.config_file }}"
+      regexp: '^broker.id.generation.enable='
+      line: 'broker.id.generation.enable=true'
+      insertafter: '^#broker.id'
+    # notify: restart kafka
+  
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} listeners
+    lineinfile:
+      path: "{{ kafka.config_file }}"
+      line: "listeners=PLAINTEXT://{{ kafka_interface_ipv4 }}:{{ kafka.config.broker_port }}"
+      insertafter: '^#listeners='
+    # notify: restart kafka
+  
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} advertised listeners
+    lineinfile:
+      path: "{{ kafka.config_file }}"
+      line: "advertised.listeners=PLAINTEXT://{{ kafka_interface_ipv4 }}:{{ kafka.config.broker_port }}"
+      insertafter: '^#advertised.listeners='
+    # notify: restart kafka
+    
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} log directories
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^log.dirs='
+      line: "log.dirs={{ kafka_data_dir | default(kafka.config.dataDir) | join(',') }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} server network threads
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^num.network.threads='
+      line: "num.network.threads={{ kafka.config.num_network_threads }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} server io threads
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^num.io.threads='
+      line: "num.io.threads={{ kafka.config.num_io_threads }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} send buffer
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^socket.send.buffer.bytes='
+      line: "socket.send.buffer.bytes={{ kafka.config.socket_send_buffer_bytes }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} receive buffer
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^socket.receive.buffer.bytes='
+      line: "socket.receive.buffer.bytes={{ kafka.config.socket_receive_buffer_bytes }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} maximum size of an acceptable request
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^socket.request.max.bytes='
+      line: "socket.request.max.bytes={{ kafka.config.socket_request_max_bytes }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} default number of partitions
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^num.partitions='
+      line: "num.partitions={{ num_partitions | default(kafka.config.num_partitions) }}"
+  #   notify: restart kafka
+  
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring number of threads for {{ kafka.service_name }} data directory log recovery
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^num.recovery.threads.per.data.dir='
+      line: "num.recovery.threads.per.data.dir={{ kafka.config.num_recovery_threads_per_data_dir }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring replication factor for {{ kafka.service_name }} group metadata internal topics
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^offsets.topic.replication.factor='
+      line: "offsets.topic.replication.factor={{ kafka.config.offsets_topic_replication_factor }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} state log replication factor
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^transaction.state.log.replication.factor='
+      line: "transaction.state.log.replication.factor={{ kafka.config.transaction_state_log_replication_factor }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring replication factor for {{ kafka.service_name }} group metadata internal topics
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^transaction.state.log.min.isr='
+      line: "transaction.state.log.min.isr={{ kafka.config.transaction_state_log_min_isr }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring minimum isr for {{ kafka.service_name }} group metadata internal topics
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^transaction.state.log.min.isr='
+      line: "transaction.state.log.min.isr={{ kafka.config.transaction_state_log_min_isr }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring minimum age for {{ kafka.service_name }} log deletion
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^log.retention.hours='
+      line: "log.retention.hours={{ kafka.config.log_retention_hours }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring maximum size of {{ kafka.service_name }} log segment files
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^log.segment.bytes='
+      line: "log.segment.bytes={{ kafka.config.log_segment_bytes }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring interval at which {{ kafka.service_name }} log segments are checked
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^log.retention.check.interval.ms='
+      line: "log.retention.check.interval.ms={{ kafka.config.log_retention_check_interval_ms }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring zookeeper connection timeout
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^zookeeper.connection.timeout.ms='
+      line: "zookeeper.connection.timeout.ms={{ kafka.config.zookeeper_connection_timeout_ms }}"
+    # notify: restart kafka
+
+  - name: CONFLUENT OVERLAY (KAFKA) | configuring {{ kafka.service_name }} group rebalance delay
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^group.initial.rebalance.delay.ms='
+      line: "group.initial.rebalance.delay.ms={{ kafka.config.group_initial_rebalance_delay_ms }}"
+  #   notify: restart kafka
+    
+  - name: CONFLUENT OVERLAY (KAFKA) | enabling topic deletion configuration
+    lineinfile:
+      path: "{{ kafka.config_file }}"
+      regexp: '^delete.topic.enable='
+      line: "delete.topic.enable={{ topic_deletion | default(kafka.config.topic_deletion) }}"
+    notify: restart kafka   
+       
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | enabling control center metrics
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^#metric.reporters='
+      line: "metric.reporters={{ kafka.config.metric_reporters }}"
+    when: "'controlcenter' in groups | default([])"
+    # notify: restart kafka
+       
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | enabling and configuring control center metrics bootstrap servers
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^#confluent.metrics.reporter.bootstrap.servers='
+      line: "confluent.metrics.reporter.bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+    when: "'controlcenter' in groups | default([])"
+    # notify: restart kafka
+    
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | enabling and configuring control center metrics
+    lineinfile:
+      backrefs: yes
+      path: "{{ kafka.config_file }}"
+      regexp: '^#confluent.metrics.reporter.topic.replicas='
+      line: "confluent.metrics.reporter.topic.replicas={{ kafka.config.confluent_metrics_reporter_topic_replicas }}"
+    when:
+      - "'controlcenter' in groups | default([])"
+      - kafka.config.confluent_metrics_reporter_topic_replicas > 1
+    # notify: restart kafka
+    
+  become: yes
+  
+- block:
+  
+  - name: CONFLUENT OVERLAY (KAFKA) | tuning {{ kafka.service_name }} JVM
+    blockinfile:
+      path: "{{ kafka.systemd_configuration }}"
+      marker: "# {mark} DataNexus managed tuning"
+      insertafter: "^Restart="
+      block: |
+        Environment="KAFKA_HEAP_OPTS={{ kafka.environment.KAFKA_HEAP_OPTS }}" "KAFKA_JVM_PERFORMANCE_OPTS={{ kafka.environment.KAFKA_JVM_PERFORMANCE_OPTS }}"
+    notify:
+      - reload systemd
+      
+  - name: CONFLUENT OVERLAY (KAFKA) | starting {{ kafka.service_name }}
+    systemd:
+      name: "{{ kafka.service_name }}"
+      state: restarted
+        
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
+- name: CONFLUENT OVERLAY (KAFKA) | pausing for {{ kafka.service_name }} initialization
+  pause:
+    seconds: 30
