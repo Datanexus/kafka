@@ -1,0 +1,32 @@
+#!/bin/sh
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
+	printf "Usage:\\tkafka-connect-replicator [-h]\\thelp\\n"
+	printf "Usage:\\tsudo -H -u {{ replicator.user }} {{ replicator.user_service }}/kafka-connect-replicator [ start | stop ]\\n"
+	exit 0
+fi
+
+if [ "$1" = "start" ] ; then
+	printf "[%s %s] INFO Starting {{ replicator.distributed.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/replicator.log
+  {% for key, value in replicator.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  /usr/bin/nohup /usr/bin/replicator --cluster.id replicator --replication.config {{ replicator.config_file }} --consumer.config {{ replicator.config_dir }}/{{ replicator.config.consumer }} --producer.config {{ replicator.config_dir }}/{{ replicator.config.producer }} >> /var/log/kafka/replicator.log 2>&1 &
+ 
+elif [ "$1" = "stop" ] ; then
+  SIGNAL=${SIGNAL:-TERM}
+  PIDS=$(ps ax | grep -i 'connect\.cli' | grep java | grep -v grep | awk '{print $1}')
+
+  if [ -z "$PIDS" ]; then
+    echo "No kafka connect replicator service to stop"
+    exit 1
+  else
+    printf "[%s %s] INFO Stopping {{ replicator.distributed.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/replicator.log
+    kill -s $SIGNAL $PIDS
+  fi
+fi
+
+# {% for key, value in replicator.environment.items() -%}
+# {{ " " ~ key }}="{{ value }}"
+# {%- endfor %}
+#/usr/bin/nohup /usr/bin/connect-distributed -daemon {{ replicator.distributed.config_file }} {{ replicator.config_file }}

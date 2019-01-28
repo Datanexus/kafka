@@ -1,0 +1,3 @@
+# (c) 2018 DataNexus Inc.  All Rights Reserved.
+---
+replicator_license: '/etc/kafka-connect-replicator/license'

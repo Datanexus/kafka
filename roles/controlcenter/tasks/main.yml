@@ -4,90 +4,125 @@
 ---
 - block:
   
-  - name: CONFLUENT OVERLAY (CONTROLCENTER) | configuring bootstrap servers
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring bootstrap servers
     lineinfile:
       path: "{{ control.center.config_file }}"
+      regexp: '^bootstrap.servers='
       line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafkabroker.config.broker_port + ',') }}:{{ kafkabroker.config.broker_port }}"
       insertafter: '^#bootstrap.servers='
-      
-  - name: CONFLUENT OVERLAY (CONTROLCENTER) | configuring control center data directory
+    notify: restart controlcenter
+    
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring zookeeper hosts
     lineinfile:
-      backrefs: yes
+      path: "{{ control.center.config_file }}"
+      regexp: '^zookeeper.connect='
+      line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+      insertafter: '^#zookeeper.connect='
+    notify: restart controlcenter
+      
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring control center data directory
+    lineinfile:
       path: "{{ control.center.config_file }}"
       regexp: '^confluent.controlcenter.data.dir='
       line: "confluent.controlcenter.data.dir={{ controlcenter_data_dir | default(control.center.config.confluent_controlcenter_data_dir) }}"
+    notify: restart controlcenter
   
-  - name: CONFLUENT OVERLAY (CONTROLCENTER) | creating control center data directory
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | creating control center data directory
     file:
       path: "{{ controlcenter_data_dir | default(control.center.config.confluent_controlcenter_data_dir) }}"
       state: directory
       mode: 0755
       owner: "{{ control.center.user }}"
       group:  "{{ control.center.group }}"
+    notify: restart controlcenter
   
-  - name: CONFLUENT OVERLAY (CONTROLCENTER) | configuring control center license
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring control center license
     lineinfile:
-      backrefs: yes
       path: "{{ control.center.config_file }}"
       regexp: '^#confluent.controlcenter.license='
       line: "#confluent.controlcenter.license={{ controlcenter_license | default(control.center.config.confluent_license) }}"
-  
-  - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring zookeeper hosts
-    lineinfile:
-      backrefs: yes
-      path: "{{ control.center.config_file }}"
-      regexp: '^#zookeeper.connect='
-      line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+    notify: restart controlcenter
   
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring control center id
     lineinfile:
-      backrefs: yes
       path: "{{ control.center.config_file }}"
-      regexp: '^#confluent.controlcenter.id='
-      line: "confluent.controlcenter.id={{ control.center.config.id }}"
+      regexp: '^confluent.controlcenter.id='
+      line: "confluent.controlcenter.id={{ (cluster != 'none') | ternary(cluster,'1') }}"
+      insertafter: '^#confluent.controlcenter.id='
+    notify: restart controlcenter
   
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring distributed connect hosts
     lineinfile:
-      backrefs: yes
       path: "{{ control.center.config_file }}"
-      regexp: '^#confluent.controlcenter.connect.cluster='
+      regexp: '^confluent.controlcenter.connect.cluster='
       line: "confluent.controlcenter.connect.cluster=http://{{ groups['kafka_connect_public'] | join(':' + connect.distributed.config.listener_port + ',http://') }}:{{ connect.distributed.config.listener_port }}"
-    when: "'kafka_connect_public' in groups | default([])"
-          
+      insertafter: '^#confluent.controlcenter.connect.cluster='
+    when:
+      - groups['kafka_connect_public'] is defined
+      - groups['kafka_connect_public'] | length > 0
+    notify: restart controlcenter
+    
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring ksql hosts
     lineinfile:
-      backrefs: yes
       path: "{{ control.center.config_file }}"
-      regexp: '^#confluent.controlcenter.ksql.url='
+      regexp: '^confluent.controlcenter.ksql.url='
       line: "confluent.controlcenter.ksql.url=http://{{ groups['kafka_ksql_public'] | join(':' + ksql.config.listener_port + ',http://') }}:{{ ksql.config.listener_port }}"
-    when: "'kafka_ksql_public' in groups | default([])"
+      insertafter: '^#confluent.controlcenter.ksql.url='
+    when: groups['kafka_ksql'] | length > 0
+    notify: restart controlcenter
   
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring schema registry hosts
     lineinfile:
-      backrefs: yes
       path: "{{ control.center.config_file }}"
-      regexp: '^#confluent.controlcenter.schema.registry.url='
+      regexp: '^confluent.controlcenter.schema.registry.url='
       line: "confluent.controlcenter.schema.registry.url=http://{{ groups['registry'] | join(':' + schema.registry.config.schema_registry_listener_port + ',http://') }}:{{ schema.registry.config.schema_registry_listener_port }}"
-    when: "'registry' in groups | default([])"
+      insertafter: '^#confluent.controlcenter.schema.registry.url='
+    when: groups['registry'] | length > 0
+    notify: restart controlcenter
   
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | ensuring {{ control.center.user_service }} exists
+    file:
+      path: "{{ control.center.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+      
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | installing {{ control.center.service_name }} into {{ control.center.user_service }}
+    template:
+      src: confluent.controlcenter.j2
+      dest: "{{ control.center.user_service }}/confluent-control-center"
+      mode: 0755
+      owner: "{{ control.center.user }}"
+      group: "{{ control.center.group }}"
+      
   become: yes
   
 - block:
   
-  - name: CONFLUENT OVERLAY (CONTROL CENTER) | tuning {{ kafka.service_name }} JVM
-    blockinfile:
-      path: "{{ control.center.systemd_configuration }}"
-      marker: "# {mark} DataNexus managed tuning"
-      insertafter: "^Restart="
-      block: |
-        Environment="CONTROL_CENTER_HEAP_OPTS={{ control.center.environment.CONTROL_CENTER_HEAP_OPTS }}"
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | creating systemd override directory
+    file:
+      path: "{{ control.center.systemd_override }}"
+      owner: "{{ control.center.user }}"
+      group: "{{ control.center.group }}"
+      state: directory
+      mode: 0750
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | installing {{ control.center.service_name }} environment overrride
+    template:
+      src: environment.j2
+      dest: "{{ control.center.systemd_override }}/override.conf"
+      mode: 0640
+      owner: "{{ control.center.user }}"
+      group: "{{ control.center.group }}"
     notify:
       - reload systemd
+      - restart controlcenter
       
-  - name: CONFLUENT OVERLAY (CONTROL CENTER) | starting {{ kafka.service_name }}
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | starting {{ control.center.service_name }}
     systemd:
       name: "{{ control.center.service_name }}"
-      state: restarted
+      state: started
         
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

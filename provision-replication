@@ -1,0 +1,82 @@
+#!/usr/bin/env ansible-playbook
+# (c) 2018 DataNexus Inc.  All Rights Reserved.
+#
+# main routine for provisioning confluent kafka
+---
+# complete preflight for all host groups
+- name: CONFLUENT OVERLAY | completing preflight OS configuration
+  hosts: kafka_replicator
+  tags:
+    - confluent
+  vars_files:
+    - vars/confluent.yml
+  vars:
+      # this is semi clever; application gets set based on each host group
+      application: "{{ group_names | first }}"
+  gather_facts: yes
+  tasks:
+    - include_role:
+        name: preflight
+
+- name: CONFLUENT OVERLAY | installing confluent platform across all nodes
+  hosts: kafka_replicator
+  tags:
+    - confluent
+  vars_files:
+    - vars/confluent.yml
+  gather_facts: yes
+  tasks:
+    - import_role:
+        name: confluent
+      vars:
+        confluent_platform_version: "confluent-platform-{{ scala_version }}"
+                
+# this is necessary before we build host groups from the ansible server because we need to discocer the public internal interface
+- name: CONFLUENT OVERLAY | discovering kafka cluster facts
+  tags:
+    - confluent
+  hosts: kafka_broker_a:kafka_broker_b
+  tasks:
+    - setup:
+      
+- name: CONFLUENT OVERLAY | building broker clusters public internal host groups
+  tags:
+    - confluent
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: CONFLUENT OVERLAY | building broker cluster a public internal host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_public_a
+      with_items: "{{ groups['kafka_broker_a'] }}"
+      when: "'kafka_broker_a' in groups | default([])"
+      
+    - name: CONFLUENT OVERLAY | building broker cluster b public internal host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_public_b
+      with_items: "{{ groups['kafka_broker_b'] }}"
+      when: "'kafka_broker_b' in groups | default([])"
+      
+- name: CONFLUENT OVERLAY | configuring confluent kafka connect replicator
+  hosts: kafka_replicator
+  tags:
+    - confluent
+  vars_files:
+    - vars/replicator.yml
+  gather_facts: yes
+  tasks:
+    - import_role:
+        name: replicator
+
+- name: CONFLUENT OVERLAY | completing postflight actions
+  hosts: kafka_replicator
+  tags:
+    - confluent
+  vars_files:
+    - vars/postflight.yml
+  vars:
+      # this is semi clever; application gets set based on each host group
+      application: "{{ group_names | first }}"
+  gather_facts: no
+  tasks:
+    - include_role:
+        name: postflight
+        

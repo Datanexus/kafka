@@ -1,0 +1,37 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# linux vm tuning
+---
+- block:
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring percentage of available memory that contains free and reclaimable pages
+    sysctl:
+      sysctl_file: "{{ linux.vm.config_file }}"
+      name: vm.dirty_ratio
+      value: "{{ linux.vm.config.dirty_ratio }}"
+    when: not((linux.vm.config.dirty_ratio is undefined) or (linux.vm.config.dirty_ratio is none) or (linux.vm.config.dirty_ratio | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring percentage of available memory that contains free and reclaimable pages
+    sysctl:
+      sysctl_file: "{{ linux.vm.config_file }}"
+      name: vm.dirty_background_ratio
+      value: "{{ linux.vm.config.dirty_background_ratio }}"
+    when: not((linux.vm.config.dirty_background_ratio is undefined) or (linux.vm.config.dirty_background_ratio is none) or (linux.vm.config.dirty_background_ratio | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how often the pdflush/flush/kdmflush processes wake up 
+    sysctl:
+      sysctl_file: "{{ linux.vm.config_file }}"
+      name: vm.dirty_writeback_centisecs
+      value: "{{ linux.vm.config.dirty_writeback_centisecs }}"
+    when: not((linux.vm.config.dirty_writeback_centisecs is undefined) or (linux.vm.config.dirty_writeback_centisecs is none) or (linux.vm.config.dirty_writeback_centisecs | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how long something can be in cache before it needs to be written
+    sysctl:
+      sysctl_file: "{{ linux.vm.config_file }}"
+      name: vm.dirty_expire_centisecs
+      value: "{{ linux.vm.config.dirty_expire_centisecs }}"
+    when: not((linux.vm.config.dirty_expire_centisecs is undefined) or (linux.vm.config.dirty_expire_centisecs is none) or (linux.vm.config.dirty_expire_centisecs | trim == ''))
+    
+  become: yes
+  when:
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

@@ -8,39 +8,96 @@
   
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring kafka rest proxy group id
     lineinfile:
-      backrefs: yes
       path: "{{ kafkarest.config_file }}"
-      regexp: '^#id='
+      regexp: '^id='
       line: "id={{ kafkarest.config.group_id }}"
-    # notify: restart kafkarest
-    
-  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring kafka brokers for rest proxy
+      insertafter: '^#id='
+    notify: restart kafkarest
+  
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring schema registry hosts
     lineinfile:
-      backrefs: yes
+      path: "{{ kafkarest.config_file }}"
+      regexp: '^schema.registry.url='
+      line: "schema.registry.url=http://{{ groups['registry'] | join(':' + schema.registry.config.schema_registry_listener_port + ',http://') }}:{{ schema.registry.config.schema_registry_listener_port }}"
+      insertafter: '^#schema.registry.url='
+    when: groups['registry'] | length > 0
+    notify: restart kafkarest
+    
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring zookeeper hosts
+    lineinfile:
+      path: "{{ kafkarest.config_file }}"
+      regexp: '^zookeeper.connect='
+      line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+      insertafter: '^#zookeeper.connect='
+    notify: restart kafkarest
+    
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring kafka brokers
+    lineinfile:
       path: "{{ kafkarest.config_file }}"
       regexp: '^bootstrap.servers='
       line: "bootstrap.servers=PLAINTEXT://{{ groups['kafka_public'] | join(':' + kafkabroker.config.broker_port + ',PLAINTEXT://') }}:{{ kafkabroker.config.broker_port }}"
-    # notify: restart kafkarest
+    notify: restart kafkarest
+  
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring {{ kafkarest.service_name }} listener
+    lineinfile:
+      path: "{{ kafkarest.config_file }}"
+      regexp: '^listeners='
+      line: "listeners=http://{{ kafka_interface_ipv4 }}:{{ kafkarest.config.rest_port }}"
+      insertafter: '^bootstrap.servers='
+    notify: restart kafkarest
+
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | ensuring {{ kafkarest.environment.LOG_DIR }} exists
+    file:
+      path: "{{ kafkarest.environment.LOG_DIR }}"
+      owner: "{{ kafkarest.user }}"
+      group: "{{ kafkarest.group }}"
+      state: directory
+      mode: 0755
+    when: kafkarest.environment.LOG_DIR is defined
+    
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | ensuring {{ kafkarest.user_service }} exists
+    file:
+      path: "{{ kafkarest.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+      
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | installing {{ kafkarest.service_name }} into {{ kafkarest.user_service }}
+    template:
+      src: confluent.restproxy.j2
+      dest: "{{ kafkarest.user_service }}/confluent-kafka-rest"
+      mode: 0755
+      owner: "{{ kafkarest.user }}"
+      group: "{{ kafkarest.group }}"
     
   become: yes
   
 - block:
   
-  - name: CONFLUENT OVERLAY (KAFKA REST) | configuring environment for logs 
-    blockinfile:
-      path: "{{ kafkarest.systemd_configuration }}"
-      marker: "# {mark} DataNexus managed logs"
-      insertafter: "^Restart="
-      block: |
-        Environment="LOG_DIR={{ kafkarest.environment.LOG_DIR }}"
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | creating systemd override directory
+    file:
+      path: "{{ kafkarest.systemd_override }}"
+      owner: "{{ kafkarest.user }}"
+      group: "{{ kafkarest.group }}"
+      state: directory
+      mode: 0750
+ 
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | installing {{ kafkarest.service_name }} environment overrride
+    template:
+      src: environment.j2
+      dest: "{{ kafkarest.systemd_override }}/override.conf"
+      mode: 0640
+      owner: "{{ kafkarest.user }}"
+      group: "{{ kafkarest.group }}"
     notify:
       - reload systemd
       - restart kafkarest
       
-  - name: CONFLUENT OVERLAY (KAFKA REST) | starting {{ kafkareset.service_name }}
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | starting {{ kafkarest.service_name }}
     systemd:
       name: "{{ kafkarest.service_name }}"
-      state: restarted
+      state: started
         
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

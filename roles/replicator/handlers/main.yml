@@ -1,0 +1,13 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+# handlers used during confluent connect installation
+---
+- name: start replicator
+  command: /usr/local/bin/kafka-connect-replicator start
+  become: yes
+  become_user: "{{ replicator.user }}"
+
+- name: stop replicator
+  command: /usr/local/bin/kafka-connect-replicator stop
+  become: yes
+  become_user: "{{ replicator.user }}"

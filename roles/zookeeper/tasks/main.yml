@@ -1,73 +1,95 @@
 # (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
 #
-#
+# main zookeeper configuration routines
 ---
+- import_tasks: interface-facts.yml
+
 - block:
-        
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} tickTime
-    lineinfile:
-      backrefs: no
-      path: "{{ zookeeper.config_file }}"
-      regexp: '^tickTime='
-      line: "tickTime={{ zookeeper.config.tickTime }}"
-    # notify: restart zookeeper
   
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper_data_dir | default(zookeeper.config.dataDir) }} exists and have the correct permissions for {{ zookeeper.service_name }}
+    file:
+      path: "{{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}"
+      owner: "{{ zookeeper.user }}"
+      group: "{{ zookeeper.group }}"
+      state: directory
+      mode: 0750
+    
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} dataDir
     lineinfile:
-      backrefs: yes
       path: "{{ zookeeper.config_file }}"
       regexp: '^dataDir='
       line: "dataDir={{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}"
-    # notify: restart zookeeper
+    notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} clientPort
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} on {{ zookeeper_interface_ipv4 }}
     lineinfile:
-      backrefs: yes
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^clientPortAddress='
+      line: "clientPortAddress={{ zookeeper_interface_ipv4 }}"
+    notify: restart zookeeper
+    
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} on {{ zookeeper.config.port }}
+    lineinfile:
       path: "{{ zookeeper.config_file }}"
       regexp: '^clientPort='
       line: "clientPort={{ zookeeper.config.port }}"
-    # notify: restart zookeeper
+    notify: restart zookeeper
   
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} maxClientCnxns
+    lineinfile:
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^maxClientCnxns='
+      line: "maxClientCnxns={{ zookeeper.config.maxClientCnxns }}"
+    when: not((zookeeper.config.maxClientCnxns is undefined) or (zookeeper.config.maxClientCnxns is none) or (zookeeper.config.maxClientCnxns | trim == ''))
+    notify: restart zookeeper
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} tickTime
+    lineinfile:
+      path: "{{ zookeeper.config_file }}"
+      regexp: '^tickTime='
+      line: "tickTime={{ zookeeper.config.tickTime }}"
+    when: not((zookeeper.config.tickTime is undefined) or (zookeeper.config.tickTime is none) or (zookeeper.config.tickTime | trim == ''))
+    notify: restart zookeeper
+    
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} initLimit
     lineinfile:
-      backrefs: no
       path: "{{ zookeeper.config_file }}"
       regexp: '^initLimit='
       line: "initLimit={{ zookeeper.config.initLimit }}"
-    # notify: restart zookeeper
+    when: not((zookeeper.config.initLimit is undefined) or (zookeeper.config.initLimit is none) or (zookeeper.config.initLimit | trim == ''))
+    notify: restart zookeeper
   
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} syncLimit
     lineinfile:
-      backrefs: no
       path: "{{ zookeeper.config_file }}"
       regexp: '^syncLimit='
       line: "syncLimit={{ zookeeper.config.syncLimit }}"
-    # notify: restart zookeeper
+    when: not((zookeeper.config.syncLimit is undefined) or (zookeeper.config.syncLimit is none) or (zookeeper.config.syncLimit | trim == ''))
+    notify: restart zookeeper
     
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} autopurge.snapRetainCount
     lineinfile:
-      backrefs: no
       path: "{{ zookeeper.config_file }}"
       regexp: '^autopurge.snapRetainCount='
       line: "autopurge.snapRetainCount={{ zookeeper.config.autopurge_snapRetainCount }}"
-    # notify: restart zookeeper
+    when: not((zookeeper.config.autopurge_snapRetainCount is undefined) or (zookeeper.config.autopurge_snapRetainCount is none) or (zookeeper.config.autopurge_snapRetainCount | trim == ''))
+    notify: restart zookeeper
   
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} autopurge.purgeInterval
     lineinfile:
-      backrefs: no
       path: "{{ zookeeper.config_file }}"
       regexp: '^autopurge.purgeInterval='
       line: "autopurge.purgeInterval={{ zookeeper.config.autopurge_purgeInterval }}"
-    # notify: restart zookeeper
+    when: not((zookeeper.config.autopurge_purgeInterval is undefined) or (zookeeper.config.autopurge_purgeInterval is none) or (zookeeper.config.autopurge_purgeInterval | trim == ''))
+    notify: restart zookeeper
 
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ ansible_play_hosts | length }} {{ zookeeper.service_name }} hosts
     lineinfile:
-      backrefs: no
       path: "{{ zookeeper.config_file }}"
       regexp: "^server.{{ item.0 + 1 | int }}="
       line: "server.{{ item.0 + 1 | int }}={{ item.1 }}:2888:3888"
     with_indexed_items: "{{ ansible_play_hosts }}"
-    # notify: restart zookeeper
+    notify: restart zookeeper
 
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} myid file
     template:
@@ -76,27 +98,55 @@
       mode: 0644
       owner: "{{ zookeeper.user }}"
       group: "{{ zookeeper.group }}"
-    # notify: restart zookeeper
+    notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | tuning {{ zookeeper.service_name }} JVM
-    blockinfile:
-      path: "{{ zookeeper.systemd_configuration }}"
-      marker: "# {mark} DataNexus managed tuning"
-      insertafter: "^Restart="
-      block: |
-        Environment="KAFKA_HEAP_OPTS={{ zookeeper.environment.KAFKA_HEAP_OPTS }}"
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper.user_service }} exists
+    file:
+      path: "{{ zookeeper.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+      
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | installing {{ zookeeper.service_name }} into {{ zookeeper.user_service }}
+    template:
+      src: confluent.zookeeper.j2
+      dest: "{{ zookeeper.user_service }}/confluent-zookeeper"
+      mode: 0755
+      owner: "{{ zookeeper.user }}"
+      group: "{{ zookeeper.group }}"
+      
+  become: yes
+  
+- block:
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | creating systemd override directory
+    file:
+      path: "{{ zookeeper.systemd_override }}"
+      owner: "{{ zookeeper.user }}"
+      group: "{{ zookeeper.group }}"
+      state: directory
+      mode: 0750
+  
+  - name: CONFLUENT OVERLAY (ZOOKEEPER) | installing {{ zookeeper.service_name }} environment override
+    template:
+      src: environment.j2
+      dest: "{{ zookeeper.systemd_override }}/override.conf"
+      mode: 0640
+      owner: "{{ zookeeper.user }}"
+      group: "{{ zookeeper.group }}"
     notify:
       - reload systemd
-      
+      - restart zookeeper
+  
   - name: CONFLUENT OVERLAY (ZOOKEEPER) | starting {{ zookeeper.service_name }}
     systemd:
       name: "{{ zookeeper.service_name }}"
-      state: restarted
-  
+      state: started
+    
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 
 - name: CONFLUENT OVERLAY (ZOOKEEPER) | pausing for {{ zookeeper.service_name }} initialization
   pause:
     seconds: 30
-    

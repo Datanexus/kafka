@@ -1,12 +1,16 @@
+# configuration variables for kafka distributed connector services
 connect:
   distributed:
     config_file: /etc/kafka/connect-distributed.properties
     service_name: confluent-kafka-connect
-    systemd_configuration: /usr/lib/systemd/system/confluent-kafka-connect.service
+    systemd_override: /etc/systemd/system/confluent-kafka-connect.service.d
+    user_service: /usr/local/bin
+    user: cp-kafka-connect
     group: confluent
     environment:
       KAFKA_HEAP_OPTS: "-Xms256M -Xmx2G"
     config:
+      rest_port: 8083
       consumer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
       producer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
       ssl.endpoint.identification.algorithm: ""
@@ -28,10 +32,7 @@ connect:
       key_converter_enable: false
       value_converter: io.confluent.connect.avro.AvroConverter
       value_converter_enable: false
-kafka:
+broker:
    config:
      # if this gets changed it needs to be changed under kafka defaults
      broker_port: '9092'
-kafkarest:
-  config:
-    rest_port: 8083

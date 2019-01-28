@@ -1,0 +1,23 @@
+#!/bin/sh
+# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
+
+if [ "$1" = "-h" ] ; then
+  printf "Usage:  consume-topic [-h]\\thelp\\n"
+  printf "\\tconsume-topic [-b BROKER:PORT] TOPIC\\tconsume topic messages\\n"
+  printf "Example: consume-topic connect-status\\n"
+  exit 0
+elif [[ $# -ge 2 && "$1" = "-b" ]] ; then
+   BROKER_HOSTS=$2
+   shift && shift
+elif [ $# -eq 1 ]; then
+  BROKER_HOSTS={{ groups['kafka_public'] | join(':9092,') }}:{{ broker.config.port }}
+fi
+
+# we want to verify the topic exists before we consume it
+/usr/local/bin/list-topics | /usr/bin/grep $1 &> /dev/null
+ if [ $? == 0 ]; then
+   /usr/bin/kafka-console-consumer --bootstrap-server $BROKER_HOSTS --topic $1 --from-beginning
+ else
+   printf "$1 topic does not exist!\n"
+   exit 1
+ fi

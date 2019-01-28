@@ -1,0 +1,72 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# linux kernel tuning
+---
+- block:
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring maximum number of file handles
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: fs.file-max
+      value: "{{ linux.kernel.config.fs_file_max }}"      
+    when: not((linux.kernel.config.fs_file_max is undefined) or (linux.kernel.config.fs_file_max is none) or (linux.kernel.config.fs_file_max | trim == ''))
+    
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring core dump pattern
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.core_pattern
+      value: "{{ linux.kernel.config.core_pattern }}"
+    when: not((linux.kernel.config.core_pattern is undefined) or (linux.kernel.config.core_pattern is none) or (linux.kernel.config.core_pattern | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring maximum number of message queue identifiers
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.msgmni
+      value: "{{ linux.kernel.config.msgmni }}"
+    when: not((linux.kernel.config.msgmni is undefined) or (linux.kernel.config.msgmni is none) or (linux.kernel.config.msgmni | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring maximum pid value
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.pid_max
+      value: "{{ linux.kernel.config.pid_max }}"
+    when: not((linux.kernel.config.pid_max is undefined) or (linux.kernel.config.pid_max is none) or (linux.kernel.config.pid_max | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring semaphore parameters
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.sem
+      value: "{{ linux.kernel.config.sem }}"
+    when: not((linux.kernel.config.sem is undefined) or (linux.kernel.config.sem is none) or (linux.kernel.config.sem | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring system wide maximum shared memory pages
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.shmall
+      value: "{{ linux.kernel.config.shmall }}"
+    when: not((linux.kernel.config.shall is undefined) or (linux.kernel.config.shall is none) or (linux.kernel.config.shall | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring system wide maximum shared memory segments
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.shmmni
+      value: "{{ linux.kernel.config.shmmni }}"
+    when: not((linux.kernel.config.shmmni is undefined) or (linux.kernel.config.shmmni is none) or (linux.kernel.config.shmmni | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring how often TCP sends out keepalive messages
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.net.ipv4.tcp_keepalive_time
+      value: "{{ linux.kernel.config.tcp_keepalive_time }}"
+    when: not((linux.kernel.config.tcp_keepalive_time is undefined) or (linux.kernel.config.tcp_keepalive_time is none) or (linux.kernel.config.tcp_keepalive_time | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring RFC286 behavior and time out the congestion window
+    sysctl:
+      sysctl_file: "{{ linux.kernel.config_file }}"
+      name: kernel.net.ipv4.tcp_slow_start_after_idle
+      value: "{{ linux.kernel.config.tcp_slow_start_after_idle }}"
+    when: not((linux.kernel.config.tcp_slow_start_after_idle is undefined) or (linux.kernel.config.tcp_slow_start_after_idle is none) or (linux.kernel.config.tcp_slow_start_after_idle | trim == ''))
+  
+  become: yes
+  when:
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

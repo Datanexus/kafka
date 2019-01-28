@@ -1,0 +1,20 @@
+#!/bin/sh
+# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
+
+if [ $# -eq 0 ] ; then
+	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:{{ zookeeper.config.port }}
+elif [ "$1" = "-h" ] ; then
+  printf "Usage:  list-topics [-h]\\thelp\\n"
+  printf "\\tlist-topics [-z ZOOKEEPER:PORT[,ZOOKEEPER:PORT]]\\tlist cluster topics\\n"
+  printf "Example: list-topics -z 10.10.1.164:{{ zookeeper.config.port }}\\n"
+	exit 0
+elif [[ $# -eq 2 && "$1" = "-z" ]] ; then
+	ZOOKEEPER_HOSTS=$2
+else
+  printf "Usage:  list-topics [-h]\\thelp\\n"
+  printf "\\tlist-topics [-z ZOOKEEPER:PORT[,ZOOKEEPER:PORT]]\\tlist cluster topics\\n"
+  printf "Example: list-topics 10.10.1.164:{{ zookeeper.config.port }}\\n"
+	exit 1
+fi
+
+/usr/bin/kafka-topics --zookeeper $ZOOKEEPER_HOSTS --list

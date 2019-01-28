@@ -1,0 +1,165 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+---
+- import_tasks: interface-facts.yml
+
+- block:
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | installing producer.properties into {{ replicator.config_dir }}
+    template:
+      src: producer.j2
+      dest: "{{ replicator.config_dir }}/producer.properties"
+      mode: 0644
+      owner: "{{ replicator.user }}"
+      group: "{{ replicator.group }}"
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | installing consumer.properties into {{ replicator.config_dir }}
+    template:
+      src: consumer.j2
+      dest: "{{ replicator.config_dir }}/consumer.properties"
+      mode: 0644
+      owner: "{{ replicator.user }}"
+      group: "{{ replicator.group }}"
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | configuring maximum replicator tasks
+    lineinfile:
+      path: "{{ replicator.config_file }}"
+      regexp: '^tasks.max='
+      line: "tasks.max={{ replicator.distributed.config.tasks }}"
+      insertafter: "^#tasks.max="
+    # notify: restart replicator
+    
+  - name: CONFLUENT OVERLAY (REPLICATOR) | configuring replicator license
+    lineinfile:
+      path: "{{ replicator.config_file }}"
+      regexp: '^#confluent.license='
+      line: "#confluent.license={{ replicator_license | default(replicator.config.confluent_license) }}"
+    # notify: restart replicator
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | configuring source broker hosts
+    lineinfile:
+      path: "{{ replicator.config_file }}"
+      regexp: '^src.kafka.bootstrap.servers='
+      line: "src.kafka.bootstrap.servers={{ groups['kafka_public_a'] | join(':' + broker.config.broker_port + ',') }}:{{ broker.config.broker_port }}"
+    # notify: restart replicator
+
+  # - name: CONFLUENT OVERLAY (REPLICATOR) | configuring destination zookeeper hosts
+  #   lineinfile:
+  #     path: "{{ replicator.config_file }}"
+  #     regexp: '^dest.zookeeper.connect='
+  #     line: "dest.zookeeper.connect={{ groups['zookeeper_b'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+  #     insertafter: "^#dest.zookeeper.connect="
+     # notify: restart replicator
+     
+  - name: CONFLUENT OVERLAY (REPLICATOR) | configuring destination broker hosts
+    lineinfile:
+      path: "{{ replicator.config_file }}"
+      regexp: '^dest.kafka.bootstrap.servers='
+      line: "dest.kafka.bootstrap.servers={{ groups['kafka_public_b'] | join(':' + broker.config.broker_port + ',') }}:{{ broker.config.broker_port }}"
+      insertafter: "^src.kafka.bootstrap.servers="
+     # notify: restart replicator
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | configuring topic replication whitelist
+    lineinfile:
+      path: "{{ replicator.config_file }}"
+      regexp: '^topic.regex='
+      line: 'topic.regex=.*'
+      insertafter: "^#topic.regex="
+      # notify: restart replicator
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | enabling destination topic auto-creation
+    lineinfile:
+      path: "{{ replicator.config_file }}"
+      regexp: '^topic.auto.create='
+      line: 'topic.auto.create=true'
+      insertafter: "^#topic.auto.create="
+      # notify: restart replicator
+      
+  - name: CONFLUENT OVERLAY (REPLICATOR) | configuring destination broker hosts for {{ replicator.distributed.service_name }}
+    lineinfile:
+      path: "{{ replicator.distributed.config_file }}"
+      regexp: '^bootstrap.servers='
+      line: "bootstrap.servers={{ groups['kafka_public_b'] | join(':' + broker.config.broker_port + ',') }}:{{ broker.config.broker_port }}"
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | enabling and configuring ReST host for {{ replicator.distributed.service_name }} 
+    lineinfile:
+      path: "{{ replicator.distributed.config_file }}"
+      regexp: '^rest.host.name='
+      line: "rest.host.name={{ replicator_rest_interface_ipv4 }}"
+      insertafter: "^#rest.host.name="
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | enabling and configuring ReST port for {{ replicator.distributed.service_name }}
+    lineinfile:
+      path: "{{ replicator.distributed.config_file }}"
+      regexp: '^rest.port='
+      line: "rest.port={{ replicator.distributed.config.rest_port }}"
+      insertafter: '^#rest.port='
+    notify: restart connect
+  
+  # - name: CONFLUENT OVERLAY (REPLICATOR) | configuring source zookeeper hosts
+  #   lineinfile:
+  #     path: "{{ replicator.config_file }}"
+  #     regexp: '^src.zookeeper.connect='
+  #     line: "src.zookeeper.connect={{ groups['zookeeper_a'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+  #     insertafter: '^#src.zookeeper.connect='
+    # notify: restart replicator
+  
+  - name: CONFLUENT OVERLAY (REPLICATOR) | ensuring {{ replicator.user_service }} exists
+    file:
+      path: "{{ replicator.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+
+  # this is datanexus original logging, so we need to make sure it exists since it's not handled via standard install
+  - name: CONFLUENT OVERLAY (REPLICATOR) | ensuring logs exist
+    file:
+      path: "{{ item }}"
+      owner: "{{ replicator.user }}"
+      group: "{{ replicator.group }}"
+      state: touch
+      mode: 0644
+    with_items:
+      - /var/log/kafka/replicator.log
+      - /var/log/kafka/distributed-connector.log
+      
+  - name: CONFLUENT OVERLAY (REPLICATOR) | installing {{ replicator.distributed.service_name }} into {{ replicator.user_service }}
+    template:
+      src: connect.replicator.j2
+      dest: "{{ replicator.user_service }}/kafka-connect-replicator"
+      mode: 0755
+      owner: "{{ replicator.user }}"
+      group: "{{ replicator.group }}"
+  
+  become: yes
+ 
+# - block:
+#
+#   - name: CONFLUENT OVERLAY (REPLICATOR) | creating systemd override directory
+#     file:
+#       path: "{{ replicator.systemd_override }}"
+#       owner: "{{ replicator.user }}"
+#       group: "{{ replicator.group }}"
+#       state: directory
+#       mode: 0640
+#
+#   - name: CONFLUENT OVERLAY (REPLICATOR) | installing {{ replicator.service_name }} environment overrride
+#     template:
+#       src: environment.j2
+#       dest: "{{ replicator.systemd_override }}/override.conf"
+#       mode: 0640
+#       owner: "{{ replicator.user }}"
+#       group: "{{ replicator.group }}"
+#     notify:
+#       - reload systemd
+#       - restart replicator
+#
+#   - name: CONFLUENT OVERLAY (CONNECT) | starting {{ connect.distributed.service_name }}
+#     systemd:
+#       name: "{{ replicator.service_name }}"
+#       state: started
+#
+#   become: yes
+#   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

@@ -159,7 +159,6 @@ Otherwise, configure the ansible `hostsfile` to resemble your preferred cluster 
           10.10.1.13 ansible_user=centos ansible_ssh_private_key_file=./server-key.pem
           
 ### deployment
-
 Once the ansible `hostsfile` has been generated (either automatically or by hand). Note that the installation is idempotent and multiple runs of the playbook is permissible:
 
       ./deploy hostsfile datanexus demo aws us-east-1 development none
@@ -169,3 +168,30 @@ Once complete, verify the platform is running by port forwarding the control cen
       ssh -i aws-us-east-1-demo-broker-development-private-key.pem 10.10.1.67 -L 9021:localhost:9021
 
 Open a tab in your local browser to [http://localhost:9021](http://localhost:9021).
+
+#### active / passive  cluster
+
+Deploy the source cluster:
+
+    ./deploy hostsfile.a datanexus demo aws us-east-1 development a 
+
+Deploy the destination cluster:
+
+    ./deploy hostsfile.b datanexus demo aws us-east-1 development b
+    
+Deploy the connect replicator (in this case the replicator is not part of any other cluster):
+      
+    ./deploy hostsfile.replication datanexus demo aws us-east-1 development none replication
+      
+### drift
+To check for configuration drift from the baseline, the ansible dry run output can be piped through the check wrapper:
+
+    ./deploy hostsfile datanexus demo aws us-east-1 development none drift | ./check
+
+### collect configuration files into /tmp/configuration (set via yaml)
+
+    ./collector -i hostsfile.a
+    
+  Logs are compressed and can be unarchived with:
+    
+    tar -zxf ./log.tar.gz

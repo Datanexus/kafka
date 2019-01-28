@@ -2,7 +2,7 @@
 # (c) 2018 DataNexus Inc.  All Rights Reserved.
 #
 # main routine for provisioning confluent kafka
----
+---   
 # note that the tags are not currently used, but are present for future integration into
 # the datanexus infrastructure components  
 - name: CONFLUENT OVERLAY | discovering {{ cloud }} networking
@@ -57,7 +57,7 @@
 
 # complete preflight for all host groups
 - name: CONFLUENT OVERLAY | completing preflight OS configuration
-  hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql
+  hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
   tags:
     - confluent
   vars_files:
@@ -71,7 +71,7 @@
         name: preflight
 
 - name: CONFLUENT OVERLAY | installing confluent platform across all nodes
-  hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql
+  hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
   tags:
     - confluent
   vars_files:
@@ -80,7 +80,7 @@
   tasks:
     # here we want to configure platform or community based on confluent.yml
     - set_fact:
-        confluent_distribution: "{{ (confluent_community  == true) | ternary('confluent-community','confluent-platform') }}"
+        confluent_distribution: "{{ (confluent_community == true) | ternary('confluent-community','confluent-platform') }}"
 
     - import_role:
         name: confluent
@@ -98,6 +98,7 @@
     - import_role:
         name: zookeeper
 
+# this is necessary before we build host groups from the ansible server
 - name: CONFLUENT OVERLAY | discovering kafka broker facts
   tags:
     - confluent
@@ -153,7 +154,7 @@
   hosts: localhost
   gather_facts: no
   tasks:
-    - name: CONFLUENT OVERLAY | building kafka connector public internal host group
+    - name: CONFLUENT OVERLAY | retrieving data network ip address
       add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_connect_public
       with_items: "{{ groups['kafka_connect'] }}"
       when: "'kafka_connect' in groups | default([])"
@@ -168,7 +169,7 @@
   tasks:
     - import_role:
         name: controlcenter
-
+      
 - name: CONFLUENT OVERLAY | configuring confluent kafka connect
   hosts: kafka_connect
   tags:
@@ -201,3 +202,17 @@
   tasks:
     - import_role:
         name: ksql
+
+- name: CONFLUENT OVERLAY | completing postflight actions
+  hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
+  tags:
+    - confluent
+  vars_files:
+    - vars/postflight.yml
+  vars:
+      # this is semi clever; application gets set based on each host group
+      application: "{{ group_names | first }}"
+  gather_facts: no
+  tasks:
+    - include_role:
+        name: postflight

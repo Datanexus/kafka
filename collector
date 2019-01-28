@@ -1,0 +1,16 @@
+#!/usr/bin/env ansible-playbook
+# (c) 2018 DataNexus Inc.  All Rights Reserved.
+#
+# main routine for collecting confluent platform configuration files
+---
+- name: CONFLUENT OVERLAY | collecting configuration files
+  hosts: zookeeper:kafka_broker:registry:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
+  vars_files:
+    - vars/collector.yml
+  vars:
+      # this is semi clever; application gets set based on each host group
+      application: "{{ group_names | first }}"
+  gather_facts: yes
+  tasks:    
+    - import_role:
+        name: collector

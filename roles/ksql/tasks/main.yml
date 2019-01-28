@@ -6,31 +6,70 @@
 
 - block:
   
-  - name: CONFLUENT OVERLAY (KSQL) | configuring bootstrap servers for distributed connectors
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.logs  }} exists
+    file:
+      path: "{{ ksql.config.logs }}"
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
+      state: directory
+      mode: 0755
+      
+  - name: CONFLUENT OVERLAY (KSQL) | configuring bootstrap servers for {{ ksql.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ ksql.config_file }}"
       regexp: '^bootstrap.servers='
       line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+    notify: restart ksql
     
-  - name: CONFLUENT OVERLAY (KSQL) | configuring kafka broker hosts
+  - name: CONFLUENT OVERLAY (KSQL) | configuring kafka broker hosts for {{ ksql.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ ksql.config_file }}"
       regexp: '^listeners='
       line: "listeners=http://{{ ksql_interface_ipv4 }}:{{ ksql.config.listener_port }}"
+    notify: restart ksql
+  
+  - name: CONFLUENT OVERLAY (KAFKA) | setting {{ ksql.service_name }} metrics reporting to {{ ksql.config.confluent_metrics }}
+    lineinfile:
+      path: "{{ ksql.config_file }}"
+      regexp: '^confluent.support.metrics.enable='
+      line: "confluent.support.metrics.enable={{ ksql.config.confluent_metrics }}"
+    notify: restart ksql
     
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.user_service }} exists
+    file:
+      path: "{{ ksql.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+      
+  - name: CONFLUENT OVERLAY (KSQL) | installing {{ ksql.service_name }} into {{ ksql.user_service }}
+    template:
+      src: confluent.ksql.j2
+      dest: "{{ ksql.user_service }}/confluent-ksql"
+      mode: 0755
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
+      
   become: yes
   
 - block:
   
-  - name: CONFLUENT OVERLAY (KSQL) | configuring {{ ksql.service_name }} JVM 
-    blockinfile:
-      path: "{{ ksql.systemd_configuration }}"
-      marker: "# {mark} DataNexus managed logs"
-      insertafter: "^Restart="
-      block: |
-        Environment="KSQL_HEAP_OPTS={{ ksql.environment.KSQL_HEAP_OPTS }}"
+  - name: CONFLUENT OVERLAY (KSQL) | creating systemd override directory
+    file:
+      path: "{{ ksql.systemd_override }}"
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
+      state: directory
+      mode: 0750
+ 
+  - name: CONFLUENT OVERLAY (KSQL) | installing {{ ksql.service_name }} environment overrride
+    template:
+      src: environment.j2
+      dest: "{{ ksql.systemd_override }}/override.conf"
+      mode: 0640
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
     notify:
       - reload systemd
       - restart ksql
@@ -38,7 +77,7 @@
   - name: CONFLUENT OVERLAY (KSQL) | starting {{ ksql.service_name }}
     systemd:
       name: "{{ ksql.service_name }}"
-      state: restarted
+      state: started
         
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
