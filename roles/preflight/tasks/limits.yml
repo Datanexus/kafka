@@ -1,0 +1,78 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# OS tasks to set shell limits - these take effect at each shell login
+---
+- block:
+      
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring maximum filesize (soft)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* soft fsize'
+      line: "* soft fsize {{ linux.limits.soft.config.fsize }}"
+    when: not((linux.limits.soft.config.fsize is undefined) or (linux.limits.soft.config.fsize is none) or (linux.limits.soft.config.fsize | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring maximum filesize (hard)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* hard fsize'
+      line: "* hard fsize {{ linux.limits.hard.config.fsize }}"
+    when: not((linux.limits.hard.config.fsize is undefined) or (linux.limits.hard.config.fsize is none) or (linux.limits.hard.config.fsize | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of open files (soft)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* soft nofile'
+      line: "* soft nofile {{ linux.limits.soft.config.nofile }}"
+    when: not((linux.limits.soft.config.nofile is undefined) or (linux.limits.soft.config.nofile is none) or (linux.limits.soft.config.nofile | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of open files (hard)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* hard nofile'
+      line: "* hard nofile {{ linux.limits.hard.config.nofile }}"
+    when: not((linux.limits.hard.config.nofile is undefined) or (linux.limits.hard.config.nofile is none) or (linux.limits.hard.config.nofile | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of processes (soft)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* soft nproc'
+      line: "* soft nproc {{ linux.limits.soft.config.nproc }}"
+    when: not((linux.limits.soft.config.nproc is undefined) or (linux.limits.soft.config.nproc is none) or (linux.limits.soft.config.nproc | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of processes (hard)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* hard nproc'
+      line: "* hard nproc {{ linux.limits.hard.config.nproc }}"
+    when: not((linux.limits.hard.config.nproc is undefined) or (linux.limits.hard.config.nproc is none) or (linux.limits.hard.config.nproc | trim == ''))
+
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the core file size limit (soft)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* soft core'
+      line: "* soft core {{ linux.limits.soft.config.core }}"
+    when: not((linux.limits.soft.config.core is undefined) or (linux.limits.soft.config.core is none) or (linux.limits.soft.config.core | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the core file size limit (hard)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* hard core'
+      line: "* hard core {{ linux.limits.hard.config.core }}"
+    when: not((linux.limits.hard.config.core is undefined) or (linux.limits.hard.config.core is none) or (linux.limits.hard.config.core | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the max stack size (soft)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* soft stack'
+      line: "* soft stack {{ linux.limits.soft.config.stack }}"
+    when: not((linux.limits.soft.config.stack is undefined) or (linux.limits.soft.config.stack is none) or (linux.limits.soft.config.stack | trim == ''))
+  
+  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the max stack size (hard)
+    lineinfile:
+      path: "{{ linux.limits.config_file }}"
+      regexp: '^\* hard stack'
+      line: "* hard stack {{ linux.limits.hard.config.stack }}"
+    when: not((linux.limits.hard.config.stack is undefined) or (linux.limits.hard.config.stack is none) or (linux.limits.hard.config.stack | trim == ''))
+  
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

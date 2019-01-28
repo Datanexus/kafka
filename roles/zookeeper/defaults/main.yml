@@ -1,9 +1,11 @@
+# configuration variables for zookeeper services
 zookeeper:
   user: cp-kafka
   group: confluent
   config_file: /etc/kafka/zookeeper.properties
   service_name: confluent-zookeeper
-  systemd_configuration: /usr/lib/systemd/system/confluent-zookeeper.service
+  systemd_override: /etc/systemd/system/confluent-zookeeper.service.d
+  user_service: /usr/local/bin
   config:
     maxClientCnxns: 0
     initLimit: 5

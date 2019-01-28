@@ -1,16 +1,28 @@
+# configuration variables for confluent ksql services
 ksql:
   config_file: /etc/ksql/ksql-server.properties
   service_name: confluent-ksql
-  systemd_configuration: /usr/lib/etc/systemd/system/confluent-ksql.service
+  systemd_override: /etc/systemd/system/confluent-ksql.service.d
+  user_service: /usr/local/bin
   user: cp-ksql
   group: confluent
   environment:
     KSQL_HEAP_OPTS: "-Xmx3g"
+    # this is broken confluent logging; they define -Dksql.log.dir=/usr/logs in a magic place
+    KSQL_OPTS: "-Dksql.log.dir=/var/log/confluent/ksql -Xloggc:/var/log/confluent/ksql/ksql-server-gc.log"
+    # uncomment the following line to turn on JMX on port 10101
+    # JMX_PORT: 10101
   config:
     application.id: ksql-server
     listener_port: 8088
+    logs: /var/log/confluent/ksql
     ssl.endpoint.identification.algorithm: ""
+    confluent_metrics: False
 kafka:
    config:
      # if this gets changed it needs to be changed under kafka defaults
      broker_port: '9092'
+
+
+
+

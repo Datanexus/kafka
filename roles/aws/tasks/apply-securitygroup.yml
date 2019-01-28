@@ -45,7 +45,9 @@
     with_items: "{{ zookeeper_interfaces }}"
     when: item.attachment.device_index == 0
 
-  when: groups.zookeeper | length > 0
+  when:
+    - "'zookeeper' in groups | default([])"
+    - groups.zookeeper | length > 0
   
 - name: CONFLUENT OVERLAY | discovering kafka broker instances
   ec2_instance_facts:
@@ -89,7 +91,9 @@
     with_items: "{{ kafka_interfaces }}"
     when: item.attachment.device_index == 1
   
-  when: "'kafka_broker' in groups | default([])"
+  when:
+    - "'kafka_broker' in groups | default([])"
+    - groups.kafka_broker | length > 0
 
 - name: CONFLUENT OVERLAY | discovering controlcenter instances
   ec2_instance_facts:
@@ -134,7 +138,7 @@
   
   when: "'controlcenter' in groups | default([])"
 
-- name: CONFLUENT OVERLAY | discovering registry instances
+- name: CONFLUENT OVERLAY | discovering schema registry instances
   ec2_instance_facts:
     region: "{{ region }}"
     filters:
@@ -257,12 +261,6 @@
   
   when: "'kafka_ksql' in groups | default([])"
 
-
-
-
-
-
-
 - name: CONFLUENT OVERLAY | discovering kafka connect instances
   ec2_instance_facts:
     region: "{{ region }}"
@@ -287,13 +285,13 @@
       region: "{{ region }}"
       eni_id: "{{ item.network_interface_id }}"
       security_groups:
-        - "{{ sg_kafka_connect_internal.group_id }}"        
+        # - "{{ sg_kafka_connect_internal.group_id }}"
         - "{{ sg_ssh_private.security_groups.0.group_id }}"
     with_items: "{{ connect_interfaces }}"
     when: item.attachment.device_index == 0
   
   # apply confluent external connect rules 
-  - name: CONFLUENT OVERLAY | applying kafka or external security rules to interface 1
+  - name: CONFLUENT OVERLAY | applying kafka connect external security rules to interface 1
     ec2_eni:
       region: "{{ region }}"
       eni_id: "{{ item.network_interface_id }}"
@@ -304,3 +302,41 @@
   
   when: "'kafka_connect' in groups | default([])"
 
+- name: CONFLUENT OVERLAY | discovering kafka replicator replicator instances
+  ec2_instance_facts:
+    region: "{{ region }}"
+    filters:
+      instance-state-name: running
+      "tag:Tenant": "{{ tenant }}"
+      "tag:Project": "{{ project }}"
+      "tag:Domain": "{{ domain }}" 
+      "tag:Application": 'kafka_replicator'
+      "tag:Cluster": "{{ cluster | default ('a') }}"
+      "tag:Dataflow": "{{ dataflow | default ('none') }}"
+  register: all_replicator_nodes
+  when: cloud == 'aws'
+
+- block:
+  
+  - set_fact:
+      replicator_interfaces: "{{ all_replicator_nodes.instances | map(attribute='network_interfaces') | list }}"
+
+  - name: CONFLUENT OVERLAY | applying kafka replicator internal security rules to interface 0
+    ec2_eni:
+      region: "{{ region }}"
+      eni_id: "{{ item.network_interface_id }}"
+      security_groups:
+        - "{{ sg_ssh_private.security_groups.0.group_id }}"
+    with_items: "{{ replicator_interfaces }}"
+    when: item.attachment.device_index == 0
+  
+  - name: CONFLUENT OVERLAY | applying kafka replicator external security rules to interface 1
+    ec2_eni:
+      region: "{{ region }}"
+      eni_id: "{{ item.network_interface_id }}"
+      security_groups:
+        - "{{ sg_kafka_replicator_external.group_id }}"        
+    with_items: "{{ replicator_interfaces }}"
+    when: item.attachment.device_index == 1
+  
+  when: "'kafka_replicator' in groups | default([])"

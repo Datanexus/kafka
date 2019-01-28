@@ -1,0 +1,26 @@
+#!/bin/sh
+# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
+
+# no arguments means describe all
+if [ $# -eq 0 ] ; then
+  ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:2181
+  TOPICS=`/usr/bin/kafka-topics --list --zookeeper $ZOOKEEPER_HOSTS`
+# help
+elif [ "$1" = "-h" ] ; then
+  printf "Usage:  describe-topic [-h]\\thelp\\n"
+  printf "\\tdescribe-topic [-z ZOOKEEPER:PORT[,ZOOKEEPER:PORT]] TOPIC [TOPIC [TOPIC]]\\tdescribe topic\\n"
+  printf "Example: describe-topic connect-status\\n"
+	exit 0
+elif [[ $# -ge 2 && "$1" = "-z" ]] ; then
+	ZOOKEEPER_HOSTS=$2
+  shift && shift
+  TOPICS=$@
+# topics as listed
+elif [ $# -ge 1 ] ; then
+	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:2181
+  TOPICS=$@
+fi
+
+for topic in $TOPICS; do
+  /usr/bin/kafka-topics --describe --zookeeper $ZOOKEEPER_HOSTS --topic $topic
+done

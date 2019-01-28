@@ -1,0 +1,40 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# install kafka cluster helper utilities
+---
+- block:
+
+  - name: CONFLUENT OVERLAY (POSTFLIGHT) | installing kafka topic list utility
+    template:
+      src: list-topics.j2
+      dest: "{{ utilsDir | default (postflight.utilsDir) }}/list-topics"
+      mode: 0755
+      owner: "{{ broker.user }}"
+      group: "{{ broker.group }}"
+    when:
+      - groups['zookeeper'] is defined
+      - groups['zookeeper'] | length > 0
+      
+  - name: CONFLUENT OVERLAY (POSTFLIGHT) | installing kafka topic describe utility
+    template:
+      src: describe-topic.j2
+      dest: "{{ utilsDir | default (postflight.utilsDir) }}/describe-topic"
+      mode: 0755
+      owner: "{{ broker.user }}"
+      group: "{{ broker.group }}"
+    when:
+      - groups['zookeeper'] is defined
+      - groups['zookeeper'] | length > 0
+      
+  - name: CONFLUENT OVERLAY (POSTFLIGHT) | installing kafka topic consume utility
+    template:
+      src: consume-topic.j2
+      dest: "{{ utilsDir | default (postflight.utilsDir) }}/consume-topic"
+      mode: 0755
+      owner: "{{ broker.user }}"
+      group: "{{ broker.group }}"
+    when:
+      - groups['kafka_broker'] is defined
+      - groups['kafka_broker'] | length > 0
+      
+  become: true

@@ -1,38 +1,60 @@
 # (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
 #
-#
+# routines for provisioning registry services
 ---
 - import_tasks: interface-facts.yml
 
 - block:
   
-  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | configuring schema registry listeners
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | configuring {{ schema.registry.service_name }} listeners 
     lineinfile:
-      backrefs: yes
       path: "{{ schema.registry.config_file }}"
       regexp: '^listeners='
       line: "listeners=http://{{ registry_interface_ipv4 }}:{{ schema.registry.config.schema_registry_listener_port }}"
-    # notify: restart registry
+    notify: restart registry
 
-  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | configuring schema registry zookeeper
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | configuring {{ schema.registry.service_name }} zookeeper
     lineinfile:
-      backrefs: yes
       path: "{{ schema.registry.config_file }}"
       regexp: '^kafkastore.connection.url='
       line: "kafkastore.connection.url={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
-    # notify: restart registry
+    notify: restart registry
 
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | ensuring {{ schema.registry.user_service }} exists
+    file:
+      path: "{{ schema.registry.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+      
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | installing {{ schema.registry.service_name }} into {{ schema.registry.user_service }}
+    template:
+      src: confluent.registry.j2
+      dest: "{{ schema.registry.user_service }}/confluent-schema-registry"
+      mode: 0755
+      owner: "{{ schema.registry.user }}"
+      group: "{{ schema.registry.group }}"
+      
   become: yes
   
 - block:
   
-  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | tuning {{ schema.registry.service_name }} JVM
-    blockinfile:
-      path: "{{ schema.registry.systemd_configuration }}"
-      marker: "# {mark} DataNexus managed tuning"
-      insertafter: "^Restart="
-      block: |
-        Environment="SCHEMA_REGISTRY_HEAP_OPTS={{ schema.registry.environment.SCHEMA_REGISTRY_HEAP_OPTS }}"
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | creating systemd override directory
+    file:
+      path: "{{ schema.registry.systemd_override }}"
+      owner: "{{ schema.registry.user }}"
+      group: "{{ schema.registry.group }}"
+      state: directory
+      mode: 0750
+  
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | installing {{ schema.registry.service_name }} environment overrride
+    template:
+      src: environment.j2
+      dest: "{{ schema.registry.systemd_override }}/override.conf"
+      mode: 0640
+      owner: "{{ schema.registry.user }}"
+      group: "{{ schema.registry.group }}"
     notify:
       - reload systemd
       - restart registry
@@ -40,7 +62,7 @@
   - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | starting {{ schema.registry.service_name }}
     systemd:
       name: "{{ schema.registry.service_name }}"
-      state: restarted
+      state: started
         
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

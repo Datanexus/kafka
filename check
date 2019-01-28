@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+
+__copyright__ = '(c) 2016 DataNexus Inc.  All Rights Reserved.'
+__license__ = 'APLv2.0'
+__author__ = 'ckeller@datanexus.org'
+
+import re
+import sys
+
+def main():
+    """main routine"""
+    
+    # default error condition is none
+    ec = 0
+    regex = re.compile(r'(?P<host>\S+)\s+:\s+ok=(?P<okay>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)')
+    # ip_addr = re.compile(r'(?P<ip>\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)')
+    drift = re.compile(r'(?P<drift>^[+-].+)')
+    
+    drifts = 0
+    diffs = ""
+    
+    sys.stdout.write("checking confluent data platform for drift...this will take some time\n\n")
+
+    for line in sys.stdin:
+        m = regex.search(line)
+        # n = ip_addr.search(line)
+        o = drift.search(line)
+        if o:
+            if "+++" not in o.group('drift') and "---" not in o.group('drift'):
+                diffs += o.group('drift') + '\n'
+        if m:
+            if int(m.group('unreachable')) > 0:
+                sys.stdout.write("%s is unreachable...check ansible logs.\n" % m.group('host'))
+                ec = 1
+            if int(m.group('failed')) > 0:
+                sys.stdout.write("%s has %d failure(s)...check ansible logs.\n" % (m.group('host'), int(m.group('failed'))))
+                ec = 1
+            if int(m.group('changed')) > 0 and "localhost" != m.group('host'):
+                sys.stdout.write("%s has drifted:\n" % (m.group('host')))
+                if len(diffs) > 0:
+                    sys.stdout.write("%s" % (diffs))
+                    diffs = "" 
+                drifts += 1
+    
+    # summary -- can be commented out to minimize verbosity with no ill effects 
+    if drifts == 0:
+        sys.stdout.write("%d hosts have drifted...platform is compliant.\n" % drifts)
+    else:
+        sys.stdout.write("\n%d host(s) have drifted...platform is not in compliance.\n" % drifts)
+        
+    sys.exit(ec)
+
+if __name__ == '__main__': 
+    main()

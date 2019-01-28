@@ -1,0 +1,2 @@
+zookeeper.connect={{ groups['zookeeper_a'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
+bootstrap.servers={{ groups['kafka_public_a'] | join(':' + broker.config.broker_port + ',') }}:{{ broker.config.broker_port }}

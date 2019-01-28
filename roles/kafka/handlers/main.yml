@@ -2,7 +2,7 @@
 #
 # handlers used during confluent platform installation
 ---
-- name: restart kafka
+- name: restart broker
   systemd:
     name: "{{ kafka.service_name }}"
     state: restarted

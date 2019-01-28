@@ -1,0 +1,20 @@
+# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
+#
+# automatically set facts based on interfaces present
+---    
+- name: setting eth0 to all interfaces
+  set_fact:
+    replicator_rest_interface: "{{ hostvars[inventory_hostname].ansible_eth0.device }}"
+    replicator_rest_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}"
+    replicator_rest_broadcast_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.broadcast }}"
+    replicator_rest_metrics_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}"
+  when: hostvars[inventory_hostname].ansible_eth0 is defined
+
+- name: setting eth1 to kafka and metrics
+  set_fact:
+    replicator_rest_interface: "{{ hostvars[inventory_hostname].ansible_eth1.device }}"
+    replicator_rest_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth1.ipv4.address }}"
+    replicator_rest_broadcast_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth1.ipv4.broadcast }}"
+    replicator_rest_metrics_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth1.ipv4.address }}"    
+  when: hostvars[inventory_hostname].ansible_eth1 is defined
+

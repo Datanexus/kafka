@@ -1,16 +1,32 @@
+# configuration variables for kafka rest services
 kafkarest:
   user: cp-kafka-rest
   group: confluent
   config_file: /etc/kafka-rest/kafka-rest.properties
   service_name: confluent-kafka-rest
-  systemd_configuration: /usr/lib/systemd/system/confluent-kafka-rest.service
+  systemd_override: /etc/systemd/system/confluent-kafka-rest.service.d
+  user_service: /usr/local/bin
   config:
     rest_port: 8082
     group_id: kafka-rest-server 
     client.ssl.endpoint.identification.algorithm: ""
   environment:
     LOG_DIR: /var/log/kafka-rest
+    # this fixes the broken confluent logging; it can be removed if they fix /usr/bin/kafka-rest-start to properly define kafka-rest.log.dir
+    KAFKA_LOG4J_OPTS: "-Dkafka-rest.log.dir=/var/log/kafka-rest"
 kafkabroker:
   config:
     # this needs to be quoted as a string for concatenation purposes
     broker_port: '9092'
+schema:
+  registry:
+    config:
+      schema_registry_listener_port: '8081'
+zookeeper:
+  config:
+    # this needs to be quoted as a string for concatenation purposes
+    # if this gets changed it needs to be changed under zookeeper defaults
+    port: '2181'
+    
+    
+  

@@ -1,0 +1,93 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+# main configuration collector routines
+---
+- block:
+ 
+  - name: CONFLUENT OVERLAY (COLLECTOR) | archiving {{ collector.config.log_base }}
+    archive:
+      path: "{{ collector.config.log_base }}"
+      dest: "/tmp/log.tar.{{ collector.config.format }}"
+      format: "{{ collector.config.format }}"
+      mode: 0644
+  
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching /tmp/log.tar.{{ collector.config.format }} to {{ destinationDir }}
+    fetch:
+      src: "/tmp/log.tar.{{ collector.config.format }}"
+      dest: "{{ destinationDir }}/{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}/var/"
+      flat: yes
+      
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching zookeeper files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.zookeeper.files }}"
+    when:
+      - application == 'zookeeper'
+
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching broker files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.broker.files }}"
+    when:
+      - application == 'kafka_broker'
+    
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching registry files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.registry.files }}"
+    when:
+      - application == 'registry'
+  
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching control center files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.controlcenter.files }}"
+    when:
+      - application == 'controlcenter'
+  
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching rest proxy files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.restproxy.files }}"
+    when:
+      - application == 'rest_proxy'
+  
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching distributed connector files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.connector.distributed.files }}"
+    when:
+      - application == 'kafka_connect'
+  
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching ksql files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.ksql.files }}"
+    when:
+      - application == 'kafka_ksql'
+  
+  - name: CONFLUENT OVERLAY (COLLECTOR) | fetching distributed replicator files {{ destinationDir }}
+    fetch:
+      src: "{{ item }}"
+      dest: "{{ destinationDir }}"
+    with_items:
+      - "{{ collector.replicator.distributed.files }}"
+    when:
+      - application == 'kafka_replicator'
+
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

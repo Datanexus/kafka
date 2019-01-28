@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
+	printf "Usage:\\tconfluent-kafka [-h]\\thelp\\n"
+	printf "Usage:\\tsudo -H -u {{ kafka.user }} {{ kafka.user_service }}/confluent-kafka [ start | stop | restart ]\\n"
+	exit 0
+fi
+
+if [ "$1" = "start" ] ; then
+	printf "[%s %s] INFO Starting {{ kafka.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/server.log
+  {% for key, value in kafka.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  /usr/bin/nohup /usr/bin/kafka-server-start {{ kafka.config_file }} >> /var/log/kafka/server.log 2>&1 &
+elif [ "$1" = "stop" ] ; then
+	printf "[%s %s] INFO Stopping {{ kafka.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/server.log
+	/usr/bin/kafka-server-stop
+elif [ "$1" = "restart" ] ; then
+	printf "[%s %s] INFO Stopping {{ kafka.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/server.log
+	/usr/bin/kafka-server-stop
+	printf "[%s %s] INFO Starting {{ kafka.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/server.log
+  {% for key, value in kafka.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  /usr/bin/nohup /usr/bin/kafka-server-start {{ kafka.config_file }} >> /var/log/kafka/server.log 2>&1 &
+fi

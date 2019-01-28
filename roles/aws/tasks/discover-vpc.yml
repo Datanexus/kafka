@@ -2,7 +2,7 @@
 #
 # discover AWS vpc and set facts
 ---
-- name: POSTGRESQL OVERLAY | retrieving default VPC ID by name
+- name: CONFLUENT OVERLAY | retrieving default VPC ID by name
   local_action:
     module: ec2_vpc_net_facts
     region: "{{ region }}"
@@ -12,7 +12,7 @@
   when:
     - cidr_block is not defined
     
-- name: POSTGRESQL OVERLAY | retrieving default VPC ID by CIDR
+- name: CONFLUENT OVERLAY | retrieving default VPC ID by CIDR
   local_action:
     module: ec2_vpc_net_facts
     region: "{{ region }}"
@@ -22,7 +22,7 @@
   when:
     - cidr_block is defined
 
-- name: POSTGRESQL OVERLAY | setting vpc
+- name: CONFLUENT OVERLAY | setting vpc
   set_fact:
     specified_vpc: "{{ (specified_vpc_by_name.vpcs is defined) | ternary(specified_vpc_by_name,specified_vpc_by_cidr) }}"
 
@@ -36,7 +36,7 @@
   when:
     - internal_subnet is not defined
     
-- name: rPOSTGRESQL OVERLAY | etrieving {{ internal_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
+- name: CONFLUENT OVERLAY | retrieving {{ internal_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
@@ -46,11 +46,11 @@
   when:
     - internal_subnet is defined
 
-- name: POSTGRESQL OVERLAY | setting internal private subnet
+- name: CONFLUENT OVERLAY | setting internal private subnet
   set_fact:
     internal_subnet_result: "{{ (internal_subnet_by_name.subnets is defined) | ternary(internal_subnet_by_name,internal_subnet_by_cidr) }}"
 
-- name: POSTGRESQL OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
+- name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
@@ -60,7 +60,7 @@
   when:
     - external_subnet is not defined
     
-- name: POSTGRESQL OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
+- name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
@@ -70,7 +70,7 @@
   when:
     - external_subnet is defined
 
-- name: POSTGRESQL OVERLAY | setting internal public subnet
+- name: CONFLUENT OVERLAY | setting internal public subnet
   set_fact:
     external_subnet_result: "{{ (external_subnet_by_name.subnets is defined) | ternary(external_subnet_by_name,external_subnet_by_cidr) }}"
 
@@ -84,7 +84,7 @@
   when:
     - metrics_subnet is not defined
     
-- name: POSTGRESQL OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
+- name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
@@ -94,33 +94,39 @@
   when:
     - metrics_subnet is defined
 
-- name: POSTGRESQL OVERLAY | setting security and metrics internal subnet
+- name: CONFLUENT OVERLAY | setting security and metrics internal subnet
   set_fact:
     metrics_subnet_result: "{{ (metrics_subnet_by_name.subnets is defined) | ternary(metrics_subnet_by_name,metrics_subnet_by_cidr) }}"
 
-- set_fact: 
+- name: CONFLUENT OVERLAY | setting default internal subnet
+  set_fact: 
     internal_subnet: "{{ internal_subnet_result.subnets.0.cidr_block }}"
   when: internal_subnet is not defined
   
-- set_fact:
+- name: CONFLUENT OVERLAY | setting default internal subnet id
+  set_fact:
     internal_subnet_id: "{{ internal_subnet_result.subnets.0.id }}"
   when:
     - internal_subnet_result.skipped is not defined
 
-- set_fact: 
+- name: CONFLUENT OVERLAY | setting default external subnet
+  set_fact: 
     external_subnet: "{{ external_subnet_result.subnets.0.cidr_block }}"
   when: external_subnet is not defined
   
-- set_fact:
+- name: CONFLUENT OVERLAY | setting default external subnet id
+  set_fact:
     external_subnet_id: "{{ external_subnet_result.subnets.0.id }}"
   when:
     - external_subnet_result.skipped is not defined
 
-- set_fact: 
+- name: CONFLUENT OVERLAY | setting default metrics subnet
+  set_fact: 
     metrics_subnet: "{{ metrics_subnet_result.subnets.0.cidr_block }}"
   when: metrics_subnet is not defined
-  
-- set_fact:
+
+- name: CONFLUENT OVERLAY | setting default metrics subnet id
+  set_fact:
     metrics_subnet_id: "{{ metrics_subnet_result.subnets.0.id }}"
   when:
     - metrics_subnet_result.skipped is not defined

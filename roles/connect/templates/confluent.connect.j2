@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
+	printf "Usage:\\tconfluent-kafka-connect [-h]\\thelp\\n"
+	printf "Usage:\\tsudo -H -u {{ connect.distributed.user }} {{ connect.distributed.user_service }}/confluent-kafka-connect [ start | stop ]\\n"
+	exit 0
+fi
+
+if [ "$1" = "start" ] ; then
+	printf "[%s %s] INFO Starting {{ connect.distributed.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/connect.log
+  {% for key, value in connect.distributed.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  /usr/bin/nohup /usr/bin/connect-distributed {{ connect.distributed.config_file }} >> /var/log/kafka/connect.log 2>&1 &
+elif [ "$1" = "stop" ] ; then
+  SIGNAL=${SIGNAL:-TERM}
+  PIDS=$(ps ax | grep -i 'kafka\.connect' | grep java | grep -v grep | awk '{print $1}')
+
+  if [ -z "$PIDS" ]; then
+    echo "No kafka connect service to stop"
+    exit 1
+  else
+    printf "[%s %s] INFO Stopping {{ connect.distributed.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/connect.log
+    kill -s $SIGNAL $PIDS
+  fi
+fi

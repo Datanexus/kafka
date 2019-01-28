@@ -1,0 +1,32 @@
+# configuration variables for configuration collector
+collector:
+  config:
+    log_base: /var/log
+    format: gz
+  zookeeper:      
+    files:
+      - /etc/kafka/zookeeper.properties
+  broker:
+    files:
+      - /etc/kafka/server.properties
+  registry:
+    files:
+      - /etc/schema-registry/schema-registry.properties
+  controlcenter:
+    files:
+      - /etc/confluent-control-center/control-center-production.properties
+  restproxy:
+    files:
+      - /etc/kafka-rest/kafka-rest.properties
+  connector:
+    distributed:
+      files:
+        - /etc/kafka/connect-distributed.properties
+  ksql:
+    files:
+      - /etc/ksql/ksql-server.properties
+  replicator:
+    distributed:
+      files:
+        - /etc/kafka-connect-replicator/replicator.properties
+        - /etc/kafka-connect-replicator/replicator-connect-distributed.properties

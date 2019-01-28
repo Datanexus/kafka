@@ -1,0 +1,11 @@
+# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
+#
+# automatically set facts based on interfaces present
+---    
+- name: setting eth0 to all interfaces
+  set_fact:
+    zookeeper_interface: "{{ hostvars[inventory_hostname].ansible_eth0.device }}"
+    zookeeper_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}"
+    zookeeper_broadcast_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.broadcast }}"
+    zookeeper_metrics_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}"
+  when: hostvars[inventory_hostname].ansible_eth0 is defined

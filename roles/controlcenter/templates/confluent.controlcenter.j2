@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
+	printf "Usage:\\tconfluent-control-center [-h]\\thelp\\n"
+	printf "Usage:\\tsudo -H -u {{ control.center.user }} {{ control.center.user_service }}/confluent-control-center [ start | stop | restart ]\\n"
+	exit 0
+fi
+
+if [ "$1" = "start" ] ; then
+	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log
+  {% for key, value in control.center.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> /var/log/confluent/control-center/control-center.log 2>&1 &
+elif [ "$1" = "stop" ] ; then
+	printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log
+	/usr/bin/control-center-stop
+elif [ "$1" = "restart" ] ; then
+	printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log  
+	/usr/bin/control-center-stop
+	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log
+  {% for key, value in control.center.environment.items() -%}
+  {{ " " ~ key  }}="{{ value }}"
+  {%- endfor %}
+  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> /var/log/confluent/control-center/control-center.log 2>&1 &
+fi

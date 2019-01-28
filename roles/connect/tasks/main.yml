@@ -6,162 +6,193 @@
   
 - block:
   
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring bootstrap servers for distributed connectors
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring bootstrap servers for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^bootstrap.servers='
-      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
-    # notify: restart connect
-      
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring cluster group id
+      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + broker.config.broker_port + ',') }}:{{ broker.config.broker_port }}"
+    notify: restart connect
+    
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring cluster group id for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^group.id='
       line: "group.id={{ connect.distributed.config.group_id }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring key converter
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring key converter for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^key.converter='
       line: "key.converter={{ connect.distributed.config.internal_key_converter }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^value.converter='
       line: "value.converter={{ connect.distributed.config.internal_value_converter }}"
-    # notify: restart connect
+    notify: restart connect
             
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring key converter schema enablement
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring key converter schema enablement for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^key.converter.schemas.enable='
       line: "key.converter.schemas.enable={{ connect.distributed.config.internal_key_converter_schemas_enable }}"
-    # notify: restart connect
+    notify: restart connect
             
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter schema enablement
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter schema enablement for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^value.converter.schemas.enable='
       line: "value.converter.schemas.enable={{ connect.distributed.config.internal_value_converter_schemas_enable }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^offset.storage.topic='
       line: "offset.storage.topic={{ connect.distributed.config.offset_storage_topic }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic replication factor
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic replication factor for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^offset.storage.replication.factor='
       line: "offset.storage.replication.factor={{ connect.distributed.config.offset_storage_replication_factor }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^config.storage.topic='
       line: "config.storage.topic={{ connect.distributed.config.config_storage_topic }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic replication factor
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic replication factor for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^config.storage.replication.factor='
       line: "config.storage.replication.factor={{ connect.distributed.config.config_storage_replication_factor }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring status storage topic
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring status storage topic for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^status.storage.topic='
       line: "status.storage.topic={{ connect.distributed.config.status_storage_topic }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring status storage topic replication factor
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring status storage topic replication factor for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^status.storage.replication.factor='
       line: "status.storage.replication.factor={{ connect.distributed.config.status_storage_replication_factor }}"
-    # notify: restart connect
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring offset flush interval
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring offset flush interval for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
       regexp: '^offset.flush.interval.ms='
       line: "offset.flush.interval.ms={{ connect.distributed.config.offset_flush_interval_ms }}"
-    # notify: restart connect
+    notify: restart connect
 
-  - name: CONFLUENT OVERLAY (CONNECT) | enabling and configuring ReST host
+  - name: CONFLUENT OVERLAY (CONNECT) | enabling and configuring ReST host for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
-      regexp: '^#rest.host.name='
-      line: "rest.host.name={{ groups['rest_proxy'] | join(',') }}"
-    when: "'rest' in groups | default([])"
-    # notify: restart connect
+      regexp: '^rest.host.name='
+      line: "rest.host.name={{ connector_rest_interface_ipv4 }}"
+      insertafter: '^#rest.host.name='
+    notify: restart connect
 
-  - name: CONFLUENT OVERLAY (CONNECT) | enabling and configuring ReST port
+  - name: CONFLUENT OVERLAY (CONNECT) | enabling and configuring ReST port for {{ connect.distributed.service_name }}
     lineinfile:
-      backrefs: yes
       path: "{{ connect.distributed.config_file }}"
-      regexp: '^#rest.port='
-      line: "rest.port={{ kafkarest.config.rest_port }}"
-    when: "'rest' in groups | default([])"
-    # notify: restart connect
+      regexp: '^rest.port='
+      line: "rest.port={{ connect.distributed.config.rest_port }}"
+      insertafter: '^#rest.port='
+    notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring kafka connect properties for interceptors for control center
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring kafka connect properties for consumer interceptors for control center
     lineinfile:
       path: "{{ connect.distributed.config_file }}"
-      regexp: '^consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor'
+      regexp: '^consumer.interceptor.classes='
       line: 'consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor'
-    when: "'controlcenter' in groups | default([])"
-    # notify: restart connect
+    when:
+      - groups['controlcenter'] is defined
+      - groups['controlcenter'] | length > 0
+    notify: restart connect
 
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring kafka connect properties for interceptors for control center
+  - name: CONFLUENT OVERLAY (CONNECT) | configuring kafka connect properties for producers interceptors for control center
     lineinfile:
       path: "{{ connect.distributed.config_file }}"
-      regexp: '^producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor'
+      regexp: '^producer.interceptor.classes='
       line: 'producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor'
-    when: "'controlcenter' in groups | default([])"
-    # notify: restart connect
+    when:
+      - groups['controlcenter'] is defined
+      - groups['controlcenter'] | length > 0
+    notify: restart connect
+  
+  - name: CONFLUENT OVERLAY (CONNECT) | ensuring {{ connect.distributed.user_service }} exists
+    file:
+      path: "{{ connect.distributed.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+
+  - name: CONFLUENT OVERLAY (CONNECT) | ensuring /var/log/kafka exists
+    file:
+      path: "{{ connect.distributed.user_service }}"
+      owner: "{{ connect.distributed.user }}"
+      group: "{{ connect.distributed.group }}"
+      state: directory
+      mode: 0755
       
+  # this is datanexus original logging, so we need to make sure it exists since it's not handled via standard install
+  - name: CONFLUENT OVERLAY (CONNECT) | ensuring /var/log/kafka/connect.log exists
+    file:
+      path: /var/log/kafka/connect.log
+      owner: "{{ connect.distributed.user }}"
+      group: "{{ connect.distributed.group }}"
+      state: touch
+      mode: 0644   
+      
+  - name: CONFLUENT OVERLAY (CONNECT) | installing {{ connect.distributed.service_name }} into {{ connect.distributed.user_service }}
+    template:
+      src: confluent.connect.j2
+      dest: "{{ connect.distributed.user_service }}/confluent-kafka-connect"
+      mode: 0755
+      owner: "{{ connect.distributed.user }}"
+      group: "{{ connect.distributed.group }}"
+    
   become: yes
  
 - block:
   
-  - name: CONFLUENT OVERLAY (CONNECT) | tuning {{ connect.distributed.service_name }} JVM
-    blockinfile:
-      path: "{{ connect.distributed.systemd_configuration }}"
-      marker: "# {mark} DataNexus managed tuning"
-      insertafter: "^Restart="
-      block: |
-        Environment="KAFKA_HEAP_OPTS={{ connect.distributed.environment.KAFKA_HEAP_OPTS }}"
+  - name: CONFLUENT OVERLAY (CONNECT) | creating systemd override directory
+    file:
+      path: "{{ connect.distributed.systemd_override }}"
+      owner: "{{ connect.distributed.user }}"
+      group: "{{ connect.distributed.group }}"
+      state: directory
+      mode: 0750
+ 
+  - name: CONFLUENT OVERLAY (CONNECT) | installing {{ connect.distributed.service_name }} environment overrride
+    template:
+      src: environment.j2
+      dest: "{{ connect.distributed.systemd_override }}/override.conf"
+      mode: 0640
+      owner: "{{ connect.distributed.user }}"
+      group: "{{ connect.distributed.group }}"
     notify:
       - reload systemd
+      - restart connect
   
   - name: CONFLUENT OVERLAY (CONNECT) | starting {{ connect.distributed.service_name }}
     systemd:
       name: "{{ connect.distributed.service_name }}"
-      state: restarted
+      state: started
       
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

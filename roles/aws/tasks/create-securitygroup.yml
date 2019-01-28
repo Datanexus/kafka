@@ -26,25 +26,27 @@
       # Allow all outbound
       - proto: all
         cidr_ip: 0.0.0.0/0
+  when: "'zookeeper' in groups | default([])"
   register: sg_zookeeper_internal
 
-- name: CONFLUENT OVERLAY | creating confluent kafka connector private internal security group
-  local_action:
-    module: ec2_group
-    name: "dnsg_{{ project }}_kafka_connect_private_internal"
-    description: "kafka connector internal ingress and unrestricted egress rules (ansible)"
-    vpc_id: "{{ specified_vpc.vpcs.0.id }}"
-    region: "{{ region }}"
-    rules:
-      - proto: tcp
-        from_port: "{{ connect.distributed.config.listener_port }}"
-        to_port: "{{ connect.distributed.config.listener_port }}"
-        cidr_ip: "{{ internal_subnet }}"
-    rules_egress:
-      # Allow all outbound
-      - proto: all
-        cidr_ip: 0.0.0.0/0
-  register: sg_kafka_connect_internal
+# - name: CONFLUENT OVERLAY | creating confluent kafka connector private internal security group
+#   local_action:
+#     module: ec2_group
+#     name: "dnsg_{{ project }}_kafka_connect_private_internal"
+#     description: "kafka connector internal ingress and unrestricted egress rules (ansible)"
+#     vpc_id: "{{ specified_vpc.vpcs.0.id }}"
+#     region: "{{ region }}"
+#     rules:
+#       - proto: tcp
+#         from_port: "{{ connect.distributed.config.listener_port }}"
+#         to_port: "{{ connect.distributed.config.listener_port }}"
+#         cidr_ip: "{{ internal_subnet }}"
+#     rules_egress:
+#       # Allow all outbound
+#       - proto: all
+#         cidr_ip: 0.0.0.0/0
+#   when: "'kafka_connect' in groups | default([])"
+#   register: sg_kafka_connect_internal
    
 - name: CONFLUENT OVERLAY | creating confluent kafka connector private external security group
   local_action:
@@ -62,8 +64,30 @@
       # Allow all outbound
       - proto: all
         cidr_ip: 0.0.0.0/0
+  when: "'kafka_connect' in groups | default([])"
   register: sg_kafka_connect_external
-
+  
+- name: CONFLUENT OVERLAY | creating confluent kafka connect replicator private external security group
+  local_action:
+    module: ec2_group
+    name: "dnsg_{{ project }}_kafka_replicator_private_external"
+    description: "kafka connect replicator external ingress and unrestricted egress rules (ansible)"
+    vpc_id: "{{ specified_vpc.vpcs.0.id }}"
+    region: "{{ region }}"
+    rules:
+      - proto: tcp
+        # from_port: "{{ replicator.distributed.config.listener_port }}" CNK
+        # to_port: "{{ replicator.distributed.config.listener_port }}" CNK
+        from_port: 0
+        to_port: 65535
+        cidr_ip: "{{ external_subnet }}"
+    rules_egress:
+      # Allow all outbound
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  when: "'kafka_replicator' in groups | default([])"
+  register: sg_kafka_replicator_external
+  
 - name: CONFLUENT OVERLAY | creating confluent kafka broker private external security group
   local_action:
     module: ec2_group
@@ -72,11 +96,6 @@
     vpc_id: "{{ specified_vpc.vpcs.0.id }}"
     region: "{{ region }}"
     rules:
-      # SSL
-      - proto: tcp
-        from_port: "{{ kafka.broker.config.ssl }}"
-        to_port: "{{ kafka.broker.config.ssl }}"
-        cidr_ip: "{{ external_subnet }}"
       # plaintext
       - proto: tcp
         from_port: "{{ kafka.broker.config.plaintext }}"
@@ -86,6 +105,7 @@
       # Allow all outbound
       - proto: all
         cidr_ip: 0.0.0.0/0
+  when: "'kafka_broker' in groups | default([])"
   register: sg_kafka_external
 
 - name: CONFLUENT OVERLAY | creating confluent kafka registry private external security group
@@ -105,6 +125,7 @@
       # Allow all outbound
       - proto: all
         cidr_ip: 0.0.0.0/0
+  when: "'registry' in groups | default([])"
   register: sg_registry_external
 
 - name: CONFLUENT OVERLAY | creating confluent kafka rest proxy private external security group
@@ -124,6 +145,7 @@
       # Allow all outbound
       - proto: all
         cidr_ip: 0.0.0.0/0
+  when: "'rest_proxy' in groups | default([])"
   register: sg_restproxy_external
 
 - name: CONFLUENT OVERLAY | creating confluent kafka ksql private external security group
@@ -142,6 +164,7 @@
       # Allow all outbound
       - proto: all
         cidr_ip: 0.0.0.0/0
+  when: "'kafka_ksql' in groups | default([])"
   register: sg_ksql_external
 
 - name: CONFLUENT OVERLAY | creating confluent control center private external security group
@@ -160,9 +183,5 @@
       # Allow all outbound
       - proto: all
         cidr_ip: 0.0.0.0/0
+  when: "'controlcenter' in groups | default([])"
   register: sg_controlcenter_external
-  
-  
-  
-  
-  
