@@ -1,7 +1,9 @@
 # (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
 #
 #
---- 
+---
+- import_tasks: tune.yml
+
 - import_tasks: interface-facts.yml
 
 - block:
@@ -351,6 +353,14 @@
       line: "log.cleaner.threads={{ kafka.config.log_cleaner_threads }}"
     when: not((kafka.config.log_cleaner_threads is undefined) or (kafka.config.log_cleaner_threads is none) or (kafka.config.log_cleaner_threads | trim == ''))
     notify: restart broker
+  
+  # # this seems to be required to avoid connector timestamp warnings
+  - name: CONFLUENT OVERLAY (BROKER) | configuring message timestamp of {{ kafka.service_name }}
+    lineinfile:
+      path: "{{ kafka.config_file }}"
+      regexp: '^log.message.timestamp.type='
+      line: "log.message.timestamp.type=LogAppendTime"
+    notify: restart broker
  
   - name: CONFLUENT OVERLAY (BROKER) | ensuring {{ kafka.user_service }} exists
     file:
@@ -398,7 +408,3 @@
             
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
-
-- name: CONFLUENT OVERLAY (BROKER) | pausing for {{ kafka.service_name }} initialization
-  pause:
-    seconds: 30

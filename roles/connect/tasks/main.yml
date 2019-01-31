@@ -2,6 +2,8 @@
 #
 #
 ---
+- import_tasks: tune.yml
+
 - import_tasks: interface-facts.yml
   
 - block:
@@ -24,28 +26,28 @@
     lineinfile:
       path: "{{ connect.distributed.config_file }}"
       regexp: '^key.converter='
-      line: "key.converter={{ connect.distributed.config.internal_key_converter }}"
+      line: "key.converter={{ connect.distributed.config.key_converter }}"
     notify: restart connect
         
   - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter for {{ connect.distributed.service_name }}
     lineinfile:
       path: "{{ connect.distributed.config_file }}"
       regexp: '^value.converter='
-      line: "value.converter={{ connect.distributed.config.internal_value_converter }}"
+      line: "value.converter={{ connect.distributed.config.value_converter }}"
     notify: restart connect
             
   - name: CONFLUENT OVERLAY (CONNECT) | configuring key converter schema enablement for {{ connect.distributed.service_name }}
     lineinfile:
       path: "{{ connect.distributed.config_file }}"
       regexp: '^key.converter.schemas.enable='
-      line: "key.converter.schemas.enable={{ connect.distributed.config.internal_key_converter_schemas_enable }}"
+      line: "key.converter.schemas.enable={{ connect.distributed.config.key_converter_schemas_enable }}"
     notify: restart connect
             
   - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter schema enablement for {{ connect.distributed.service_name }}
     lineinfile:
       path: "{{ connect.distributed.config_file }}"
       regexp: '^value.converter.schemas.enable='
-      line: "value.converter.schemas.enable={{ connect.distributed.config.internal_value_converter_schemas_enable }}"
+      line: "value.converter.schemas.enable={{ connect.distributed.config.value_converter_schemas_enable }}"
     notify: restart connect
         
   - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic for {{ connect.distributed.service_name }}

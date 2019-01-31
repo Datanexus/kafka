@@ -12,7 +12,7 @@ kafka:
   user_service: /usr/local/bin
   service_name: confluent-kafka
   environment:
-    KAFKA_HEAP_OPTS: "-Xmx6g -Xms6g"
+    KAFKA_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g -Xms{{ jvm_heap_mem }}g"
     KAFKA_JVM_PERFORMANCE_OPTS: "-XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
     # this does not seem to work to eliminate the subject alternative name error
     # KAFKA_OPTS: "-Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"

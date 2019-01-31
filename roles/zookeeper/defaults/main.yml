@@ -18,4 +18,4 @@ zookeeper:
     # if this gets changed it all needs to be changed under kafka defaults
     port: '2181'
   environment:
-    KAFKA_HEAP_OPTS: "-Xmx1000M"
+    KAFKA_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g -Xms{{ jvm_heap_mem }}g"

@@ -158,7 +158,7 @@
       add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_connect_public
       with_items: "{{ groups['kafka_connect'] }}"
       when: "'kafka_connect' in groups | default([])"
-      
+
 - name: CONFLUENT OVERLAY | configuring confluent controlcenter
   hosts: controlcenter
   tags:
@@ -169,7 +169,7 @@
   tasks:
     - import_role:
         name: controlcenter
-      
+
 - name: CONFLUENT OVERLAY | configuring confluent kafka connect
   hosts: kafka_connect
   tags:

@@ -1,3 +1,5 @@
 # (c) 2018 DataNexus Inc.  All Rights Reserved.
 ---
 zookeeper_data_dir: /var/lib/zookeeper
+# this can either be 'auto' or an integer for JVM heap settings
+# jvm_heap: auto

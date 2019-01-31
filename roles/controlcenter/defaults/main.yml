@@ -8,7 +8,7 @@ control:
     systemd_override: /etc/systemd/system/confluent-control-center.service.d
     user_service: /usr/local/bin
     environment:
-      CONTROL_CENTER_HEAP_OPTS: "-Xmx6g"
+      CONTROL_CENTER_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g"
     config:
       confluent.controlcenter.streams.num.stream.threads: 8
       confluent_controlcenter_data_dir: /var/lib/confluent/control-center
@@ -36,4 +36,3 @@ connect:
   distributed:
     config:
       listener_port: '8083'
-      

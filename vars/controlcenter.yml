@@ -2,3 +2,5 @@
 ---
 controlcenter_data_dir: '/var/lib/confluent-control-center'
 controlcenter_license: '/etc/confluent-control-center/license'
+# this can either be 'auto' or an integer for JVM heap settings
+# jvm_heap: auto

@@ -2,12 +2,12 @@
 #
 # handlers used during confluent platform installation
 ---
+- name: reload systemd
+  command: systemctl daemon-reload
+  become: true
+  
 - name: restart ksql
   systemd:
     name: "{{ ksql.service_name }}"
     state: restarted
-  become: true
-
-- name: reload systemd
-  command: systemctl daemon-reload
   become: true

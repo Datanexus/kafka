@@ -2,12 +2,18 @@
 #
 # handlers used during confluent platform installation
 ---
+- name: reload systemd
+  command: systemctl daemon-reload
+  become: true
+
 - name: restart zookeeper
+  listen: "restart zookeeper"
   systemd:
     name: "{{ zookeeper.service_name }}"
     state: restarted
   become: true
-    
-- name: reload systemd
-  command: systemctl daemon-reload
-  become: true
+
+- name: pause
+  listen: "restart zookeeper"
+  pause:
+    seconds: 30
