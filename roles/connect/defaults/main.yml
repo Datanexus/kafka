@@ -8,7 +8,7 @@ connect:
     user: cp-kafka-connect
     group: confluent
     environment:
-      KAFKA_HEAP_OPTS: "-Xms256M -Xmx2G"
+      KAFKA_HEAP_OPTS: "-Xms256M -Xmx{{ jvm_heap_mem }}g"
     config:
       rest_port: 8083
       consumer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
@@ -19,19 +19,15 @@ connect:
       config_storage_replication_factor: 3
       config_storage_topic: connect-configs
       group_id: connect-cluster
-      internal_key_converter: org.apache.kafka.connect.json.JsonConverter
-      internal_key_converter_schemas_enable: true
-      internal_value_converter: org.apache.kafka.connect.json.JsonConverter
-      internal_value_converter_schemas_enable: true
+      key_converter: org.apache.kafka.connect.json.JsonConverter
+      key_converter_schemas_enable: false
+      value_converter: org.apache.kafka.connect.json.JsonConverter
+      value_converter_schemas_enable: false
       offset_flush_interval_ms: 10000
       offset_storage_replication_factor: 3
       offset_storage_topic: connect-offsets
       status_storage_replication_factor: 3
       status_storage_topic: connect-status
-      key_converter: io.confluent.connect.avro.AvroConverter
-      key_converter_enable: false
-      value_converter: io.confluent.connect.avro.AvroConverter
-      value_converter_enable: false
 broker:
    config:
      # if this gets changed it needs to be changed under kafka defaults

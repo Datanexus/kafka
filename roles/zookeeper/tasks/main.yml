@@ -2,6 +2,8 @@
 #
 # main zookeeper configuration routines
 ---
+- import_tasks: tune.yml
+
 - import_tasks: interface-facts.yml
 
 - block:
@@ -146,7 +148,3 @@
     
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
-
-- name: CONFLUENT OVERLAY (ZOOKEEPER) | pausing for {{ zookeeper.service_name }} initialization
-  pause:
-    seconds: 30

@@ -2,6 +2,8 @@
 #
 # configure confluent controlcenter
 ---
+- import_tasks: tune.yml
+
 - block:
   
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring bootstrap servers

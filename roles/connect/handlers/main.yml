@@ -2,12 +2,12 @@
 #
 # handlers used during confluent connect installation
 ---
+- name: reload systemd
+  command: systemctl daemon-reload
+  become: yes
+  
 - name: restart connect
   systemd:
     name: "{{ connect.distributed.service_name }}"
     state: restarted
-  become: yes
-  
-- name: reload systemd
-  command: systemctl daemon-reload
   become: yes

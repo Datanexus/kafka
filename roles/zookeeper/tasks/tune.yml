@@ -1,0 +1,14 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+---
+- name: CONFLUENT OVERLAY (ZOOKEEPER TUNING) | jvm heap size is...{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),('automatic')) }}
+  set_fact:
+    jvm_heap_mem="{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int)) }}"    
+
+- name: CONFLUENT OVERLAY (ZOOKEEPER TUNING) | validating {{ jvm_heap_mem }}gb needed <= {{ ((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int) }}gb total
+  assert:
+    that:
+      - (jvm_heap_mem | int) <= ((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int) 
+    fail_msg: "heap space inadequate: allocate more RAM, decrease requested heap space, or set 'jvm_heap' to 'auto'"
+    success_msg: "system has enough heap space"
