@@ -12,7 +12,7 @@ clusters="none a b"            # only needed if we deal with multiple clusters
 
 # variables that may change
 export AWS_PROFILE=datanexus
-export AWS=$HOME/.pyenv/shims/aws
+export AWS=`which aws`
 ANSIBLE_USER=centos
 
 # variables that shouldn't change
