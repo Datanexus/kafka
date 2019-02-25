@@ -6,11 +6,27 @@
 
 - block:
   
-  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.logs  }} exists
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.logs }} exists
     file:
       path: "{{ ksql.config.logs }}"
       owner: "{{ ksql.user }}"
       group: "{{ ksql.group }}"
+      state: directory
+      mode: 0755
+  
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.streams }} exists
+    file:
+      path: "{{ ksql.config.streams }}"
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
+      state: directory
+      mode: 0755
+  
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.cli_logs }} exists
+    file:
+      path: "{{ ksql.config.cli_logs }}"
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
       state: directory
       mode: 0755
       

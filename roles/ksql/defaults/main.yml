@@ -16,6 +16,10 @@ ksql:
     application.id: ksql-server
     listener_port: 8088
     logs: /var/log/confluent/ksql
+    # referenced in /etc/ksql/log4j-file.properties
+    cli_logs: /usr/logs/ksql-cli
+    # this doesn't appear to be configurable
+    streams: /var/lib/kafka-streams
     ssl.endpoint.identification.algorithm: ""
     confluent_metrics: False
 kafka:
