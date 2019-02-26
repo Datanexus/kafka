@@ -145,7 +145,7 @@
 
   - name: CONFLUENT OVERLAY (CONNECT) | ensuring /var/log/kafka exists
     file:
-      path: "{{ connect.distributed.user_service }}"
+      path: /var/log/kafka
       owner: "{{ connect.distributed.user }}"
       group: "{{ connect.distributed.group }}"
       state: directory

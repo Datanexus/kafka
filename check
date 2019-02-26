@@ -12,22 +12,41 @@ def main():
     
     # default error condition is none
     ec = 0
-    regex = re.compile(r'(?P<host>\S+)\s+:\s+ok=(?P<okay>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)')
-    # ip_addr = re.compile(r'(?P<ip>\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)')
+    # this checks the summary
+    summary = re.compile(r'(?P<host>\S+)\s+:\s+ok=(?P<okay>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)')
+    # this picks up the ip address (hostname not supported)
+    changed = re.compile(r'^changed:\s\[(?P<changed>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\]$')
+    # this picks up actual changes
     drift = re.compile(r'(?P<drift>^[+-].+)')
+    # this picks up the changed file
+    filename = re.compile(r'before:\s(?P<file>([^\s]+))')
     
     drifts = 0
     diffs = ""
-    
+    changed_file = ""
     sys.stdout.write("checking confluent data platform for drift...this will take some time\n\n")
 
     for line in sys.stdin:
-        m = regex.search(line)
-        # n = ip_addr.search(line)
+        m = summary.search(line)
         o = drift.search(line)
+        f = filename.search(line)
+        c = changed.search(line)
+
+        if f:
+            changed_file = f.group('file')
+            
         if o:
             if "+++" not in o.group('drift') and "---" not in o.group('drift'):
                 diffs += o.group('drift') + '\n'
+        
+        if c:
+            if len(diffs) > 0:
+                sys.stdout.write("%s has drifted in %s:\n" % (c.group('changed'), changed_file))
+                sys.stdout.write("%s" % (diffs))
+                diffs = "" 
+                changed_file = ""
+                drifts += 1
+            
         if m:
             if int(m.group('unreachable')) > 0:
                 sys.stdout.write("%s is unreachable...check ansible logs.\n" % m.group('host'))
@@ -35,18 +54,12 @@ def main():
             if int(m.group('failed')) > 0:
                 sys.stdout.write("%s has %d failure(s)...check ansible logs.\n" % (m.group('host'), int(m.group('failed'))))
                 ec = 1
-            if int(m.group('changed')) > 0 and "localhost" != m.group('host'):
-                sys.stdout.write("%s has drifted:\n" % (m.group('host')))
-                if len(diffs) > 0:
-                    sys.stdout.write("%s" % (diffs))
-                    diffs = "" 
-                drifts += 1
-    
+        
     # summary -- can be commented out to minimize verbosity with no ill effects 
     if drifts == 0:
-        sys.stdout.write("%d hosts have drifted...platform is compliant.\n" % drifts)
+        sys.stdout.write("%d drifts have been identified...platform is compliant.\n" % drifts)
     else:
-        sys.stdout.write("\n%d host(s) have drifted...platform is not in compliance.\n" % drifts)
+        sys.stdout.write("\n%d drifts have been identified...platform is not compliant.\n" % drifts)
         
     sys.exit(ec)
 

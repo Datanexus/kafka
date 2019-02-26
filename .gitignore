@@ -6,3 +6,5 @@ ansible.log
 *.retry
 # any hostsfile
 *hostsfile
+# demo actuals
+DEMO.md
