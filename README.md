@@ -186,7 +186,7 @@ Deploy the connect replicator (in this case the replicator is not part of any ot
 ### drift
 To check for configuration drift from the baseline, the ansible dry run output can be piped through the check wrapper:
 
-    ./deploy hostsfile datanexus demo aws us-east-1 development none drift | ./check
+    ./deploy hostsfile datanexus demo aws us-east-1 development none drift
 
 ### collect configuration files into /tmp/configuration (set via yaml)
 
