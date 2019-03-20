@@ -1,0 +1,17 @@
+# (c) Copyright 2019 DataNexus Inc.  All Rights Reserved.
+#
+# install needed packages
+---
+# CentOS / Redhat 7
+- block:
+  
+  - name: CRUISE CONTROL OVERLAY | installing prerequisite packages
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - unzip
+      - git
+   
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

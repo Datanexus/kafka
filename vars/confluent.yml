@@ -1,9 +1,0 @@
-# (c) 2018 DataNexus Inc.  All Rights Reserved.
----
-java_version: '1.8.0'
-confluent_version: '5.1'
-confluent_os_releasever: '7'
-scala_version: '2.11'
-confluent_public_key: "https://packages.confluent.io/rpm/{{ confluent_version }}/archive.key"
-# setting this to no installs the enterprise platform
-confluent_community: no

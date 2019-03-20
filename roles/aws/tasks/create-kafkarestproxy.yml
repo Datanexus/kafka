@@ -1,0 +1,23 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# create AWS kafka rest proxy security group rules
+---
+- name: CONFLUENT OVERLAY | creating confluent kafka rest proxy private external security group
+  local_action:
+    module: ec2_group
+    name: "dnsg_{{ project }}_restproxy_private_external"
+    description: "kafka rest proxy external ingress and unrestricted egress rules (ansible)"
+    vpc_id: "{{ specified_vpc.vpcs.0.id }}"
+    region: "{{ region }}"
+    rules:
+      # ReST connector
+      - proto: tcp
+        from_port: "{{ kafka.rest.config.rest_port }}"
+        to_port: "{{ kafka.rest.config.rest_port }}"
+        cidr_ip: "{{ external_subnet }}"
+    rules_egress:
+      # Allow all outbound
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  when: "'rest_proxy' in groups | default([])"
+  register: sg_restproxy_external

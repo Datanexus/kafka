@@ -1,0 +1,174 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# cruise control installation: https://github.com/linkedin/cruise-control
+---
+- import_tasks: interface-facts.yml
+
+# create all the required directories and files
+- block:
+  
+  - name: CRUISE CONTROL OVERLAY | ensuring {{ cruisecontrol_log_dir | default(cruisecontrol.config.log) }} exists and has the correct permissions for {{ cruisecontrol.service_name }}
+    file:
+      path: "{{ cruisecontrol_log_dir | default(cruisecontrol.config.log) }}"
+      owner: "{{ cruisecontrol.user }}"
+      group: "{{ cruisecontrol.group }}"
+      state: directory
+      mode: 0750
+      
+  - name: CRUISE CONTROL OVERLAY | ensuring {{ cruisecontrol.user_service }} exists
+    file:
+      path: "{{ cruisecontrol.user_service }}"
+      owner: root
+      group: root
+      state: directory
+      mode: 0755
+    
+  - name: CRUISE CONTROL OVERLAY | installing {{ cruisecontrol.service_name }} into {{ cruisecontrol.user_service }}
+    template:
+      src: linkedin.cruisecontrol.j2
+      dest: "{{ cruisecontrol.user_service }}/{{ cruisecontrol.service_name }}"
+      mode: 0755
+      owner: "{{ cruisecontrol.user }}"
+      group: "{{ cruisecontrol.group }}"
+
+  become: yes
+  
+- name: CRUISE CONTROL OVERLAY | checking existing metrics jar
+  stat:
+    path: "{{ cruisecontrol.source_dir }}/cruise-control/cruise-control-metrics-reporter/build/libs/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
+  register: metrics_jar
+
+- block:
+  
+  - import_tasks: install-git.yml
+  - import_tasks: install-java.yml
+    
+  - name: CRUISE CONTROL OVERLAY | cloning cruise control {{ application_version | default(cruisecontrol.version) }}
+    git:
+      repo: 'https://github.com/linkedin/cruise-control.git'
+      dest: "{{ cruisecontrol.source_dir }}/cruise-control"
+      version: "{{ application_version | default(cruisecontrol.version) }}"
+    become: yes
+
+  - name: CRUISE CONTROL OVERLAY | fixing permissions
+    file:
+      path: "{{ cruisecontrol.source_dir }}/cruise-control"
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      recurse: yes
+    become: yes
+  
+  - name: CRUISE CONTROL OVERLAY | compiling cruise control {{ application_version | default(cruisecontrol.version) }}
+    command: "./gradlew jar"
+    args:
+      chdir: "{{ cruisecontrol.source_dir }}/cruise-control"
+  
+  - name: CRUISE CONTROL OVERLAY | fetching cruise control metrics jar
+    fetch:
+      src: "{{ cruisecontrol.source_dir }}/cruise-control/cruise-control-metrics-reporter/build/libs/{{ item }}"
+      dest: "{{ key_path }}/{{ item }}"
+      flat: yes
+    with_items:
+      - "cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
+  
+  when: not metrics_jar.stat.exists
+
+    
+# the when: clause here ensures we only execute this on the successive call
+- block:
+  
+  - name: CRUISE CONTROL OVERLAY (FRONT END) | checking for {{ cruisecontrol.source_dir }}/cruise-control/cruise-control-ui
+    stat: path="{{ cruisecontrol.source_dir }}/cruise-control/cruise-control-ui"
+    register: existing_package
+
+  # https://github.com/linkedin/cruise-control-ui/
+  - block:
+
+    - name: CRUISE CONTROL OVERLAY (FRONT END) | downloading cruise control front end v{{ frontend_version | default(cruisecontrol.frontend_version) }}
+      get_url:
+        url: "https://github.com/linkedin/cruise-control-ui/releases/download/v{{ frontend_version | default(cruisecontrol.frontend_version) }}-pre/cruise-control-ui.tar.gz"
+        dest: /tmp/cruise-control-ui.tar.gz
+        mode: 0600
+      when: not existing_package.stat.exists
+
+    - name: CRUISE CONTROL OVERLAY (FRONT END) | installing cruise control front end
+      unarchive:
+        src: /tmp/cruise-control-ui.tar.gz
+        dest: "{{ cruisecontrol.source_dir }}/cruise-control"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        remote_src: yes
+      when: not existing_package.stat.exists
+
+    - name: CRUISE CONTROL OVERLAY (FRONT END) | setting {{ cruisecontrol.service_name }} network port to {{ cruisecontrol.config.port }}
+      lineinfile:
+        path: "{{ cruisecontrol.config_file }}"
+        regexp: '^webserver.http.port='
+        line: "webserver.http.port={{ cruisecontrol.config.port }}"
+      notify: restart cruisecontrol
+    
+    - name: CRUISE CONTROL OVERLAY (FRONT END) | setting {{ cruisecontrol.service_name }} server address to {{ cruisecontrol_interface_ipv4 }}
+      lineinfile:
+        path: "{{ cruisecontrol.config_file }}"
+        regexp: '^webserver.http.address='
+        line: "webserver.http.address={{ cruisecontrol_interface_ipv4 }}"
+      notify: restart cruisecontrol
+  
+    - name: CRUISE CONTROL OVERLAY (FRONT END) | configuring {{ cruisecontrol.service_name }} ui clusters
+      lineinfile:
+        backrefs: yes
+        path: "{{ cruisecontrol.ui_config_file }}"
+        regexp: '^dev,dev,/kafkacruisecontrol/'
+        line: "{{ region }},{{ project }},/kafkacruisecontrol/"
+      notify: restart cruisecontrol
+  
+    when: 
+      - (frontend | default(cruisecontrol.frontend))
+      
+  - name: CRUISE CONTROL OVERLAY | configuring bootstrap servers
+    lineinfile:
+      path: "{{ cruisecontrol.config_file }}"
+      regexp: '^bootstrap.servers='
+      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+    notify: restart cruisecontrol
+    
+  - name: CRUISE CONTROL OVERLAY | configuring zookeeper hosts
+    lineinfile:
+      path: "{{ cruisecontrol.config_file }}"
+      regexp: '^zookeeper.connect='
+      line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+    notify: restart cruisecontrol
+    
+  - name: CRUISE CONTROL OVERLAY | copying cruise control libs
+    command: "./gradlew jar copyDependantLibs"
+    args:
+      chdir: "{{ cruisecontrol.source_dir }}/cruise-control"
+  
+  - block:
+  
+    - name: CRUISE CONTROL OVERLAY | installing {{ cruisecontrol.service_name }} into {{ cruisecontrol.user_service }}
+      template:
+        src: cruisecontrol.service.j2
+        dest: "/etc/systemd/system/{{ cruisecontrol.service_name }}.service"
+        mode: 0644
+        owner: root
+        group: root
+      notify:
+        - reload systemd
+        - restart cruisecontrol
+      
+    - name: CRUISE CONTROL OVERLAY | starting {{ cruisecontrol.service_name }}
+      systemd:
+        name: "{{ cruisecontrol.service_name }}"
+        enabled: yes
+        state: started
+
+    become: yes
+    when:
+      - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  
+  when:
+    - groups['kafka_public'] is defined
+    - groups['kafka_public'] | length > 0
+    - groups['zookeeper'] is defined
+    - groups['zookeeper'] | length > 0

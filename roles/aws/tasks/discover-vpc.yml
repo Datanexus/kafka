@@ -26,7 +26,7 @@
   set_fact:
     specified_vpc: "{{ (specified_vpc_by_name.vpcs is defined) | ternary(specified_vpc_by_name,specified_vpc_by_cidr) }}"
 
-- name: retrieving {{ internal_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
+- name: CONFLUENT OVERLAY | retrieving {{ internal_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
@@ -74,7 +74,7 @@
   set_fact:
     external_subnet_result: "{{ (external_subnet_by_name.subnets is defined) | ternary(external_subnet_by_name,external_subnet_by_cidr) }}"
 
-- name: POSTGRESQL OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
+- name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"

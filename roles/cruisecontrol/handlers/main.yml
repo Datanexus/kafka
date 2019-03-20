@@ -1,0 +1,13 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+# handlers used during confluent platform installation
+---
+- name: reload systemd
+  command: systemctl daemon-reload
+  become: yes
+  
+- name: restart cruisecontrol
+  systemd:
+    name: "{{ cruisecontrol.service_name }}"
+    state: restarted
+  become: yes
