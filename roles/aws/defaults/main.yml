@@ -3,6 +3,9 @@ control:
   center:
     config:
       ui: '9029'
+cruisecontrol:
+  config:
+    port: '9090'
 zookeeper:
   config:
     port: '2181'

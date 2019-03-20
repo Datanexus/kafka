@@ -1,0 +1,23 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# create AWS kafka registry security group rules
+---
+- name: CONFLUENT OVERLAY | creating confluent kafka registry private external security group
+  local_action:
+    module: ec2_group
+    name: "dnsg_{{ project }}_registry_private_external"
+    description: "kafka registry external ingress and unrestricted egress rules (ansible)"
+    vpc_id: "{{ specified_vpc.vpcs.0.id }}"
+    region: "{{ region }}"
+    rules:
+      # schema registry
+      - proto: tcp
+        from_port: "{{ schema.registry.config.listener_port }}"
+        to_port: "{{ schema.registry.config.listener_port }}"
+        cidr_ip: "{{ external_subnet }}" 
+    rules_egress:
+      # Allow all outbound
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  when: "'registry' in groups | default([])"
+  register: sg_registry_external

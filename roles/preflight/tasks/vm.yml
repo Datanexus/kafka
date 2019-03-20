@@ -8,29 +8,29 @@
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_ratio
-      value: "{{ linux.vm.config.dirty_ratio }}"
-    when: not((linux.vm.config.dirty_ratio is undefined) or (linux.vm.config.dirty_ratio is none) or (linux.vm.config.dirty_ratio | trim == ''))
+      value: "{{ vm.config.dirty_ratio | default(linux.vm.config.dirty_ratio) }}"
+    when: not((vm.config.dirty_ratio is undefined) or (vm.config.dirty_ratio is none) or (vm.config.dirty_ratio | trim == '')) or not((linux.vm.config.dirty_ratio is undefined) or (linux.vm.config.dirty_ratio is none) or (linux.vm.config.dirty_ratio | trim == ''))
   
   - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring percentage of available memory that contains free and reclaimable pages
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_background_ratio
-      value: "{{ linux.vm.config.dirty_background_ratio }}"
-    when: not((linux.vm.config.dirty_background_ratio is undefined) or (linux.vm.config.dirty_background_ratio is none) or (linux.vm.config.dirty_background_ratio | trim == ''))
+      value: "{{ vm.config.dirty_background_ratio | default(linux.vm.config.dirty_background_ratio) }}"
+    when: not((vm.config.dirty_background_ratio is undefined) or (vm.config.dirty_background_ratio is none) or (vm.config.dirty_background_ratio | trim == '')) or not((linux.vm.config.dirty_background_ratio is undefined) or (linux.vm.config.dirty_background_ratio is none) or (linux.vm.config.dirty_background_ratio | trim == ''))
   
   - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how often the pdflush/flush/kdmflush processes wake up 
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_writeback_centisecs
-      value: "{{ linux.vm.config.dirty_writeback_centisecs }}"
-    when: not((linux.vm.config.dirty_writeback_centisecs is undefined) or (linux.vm.config.dirty_writeback_centisecs is none) or (linux.vm.config.dirty_writeback_centisecs | trim == ''))
+      value: "{{ vm.config.dirty_writeback_centisecs | default(linux.vm.config.dirty_writeback_centisecs) }}"
+    when: not((vm.config.dirty_writeback_centisecs is undefined) or (vm.config.dirty_writeback_centisecs is none) or (vm.config.dirty_writeback_centisecs | trim == '')) or not((linux.vm.config.dirty_writeback_centisecs is undefined) or (linux.vm.config.dirty_writeback_centisecs is none) or (linux.vm.config.dirty_writeback_centisecs | trim == ''))
   
   - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how long something can be in cache before it needs to be written
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_expire_centisecs
-      value: "{{ linux.vm.config.dirty_expire_centisecs }}"
-    when: not((linux.vm.config.dirty_expire_centisecs is undefined) or (linux.vm.config.dirty_expire_centisecs is none) or (linux.vm.config.dirty_expire_centisecs | trim == ''))
+      value: "{{ vm.config.dirty_expire_centisecs | default(linux.vm.config.dirty_expire_centisecs) }}"
+    when: not((vm.config.dirty_expire_centisecs is undefined) or (vm.config.dirty_expire_centisecs is none) or (vm.config.dirty_expire_centisecs | trim == '')) or not((linux.vm.config.dirty_expire_centisecs is undefined) or (linux.vm.config.dirty_expire_centisecs is none) or (linux.vm.config.dirty_expire_centisecs | trim == ''))
     
   become: yes
   when:

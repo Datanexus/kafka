@@ -1,0 +1,14 @@
+[Unit]
+Description=LinkedIn Cruise Control for Apache Kafka
+Documentation=https://github.com/linkedin/cruise-control
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ cruisecontrol.source_dir}}/{{ cruisecontrol.service_name}}
+User={{ cruisecontrol.user }}
+Group={{ cruisecontrol.user }}
+ExecStart={{ cruisecontrol.source_dir }}/{{ cruisecontrol.service_name}}/kafka-cruise-control-start.sh {{ cruisecontrol.config_file }}
+
+[Install]
+WantedBy=multi-user.target

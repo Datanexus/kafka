@@ -1,0 +1,40 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# apply AWS zookeeper security group rules for multi-interface systems
+---
+- name: CONFlUENT OVERLAY | discovering zookeeper instances
+  ec2_instance_facts:
+    region: "{{ region }}"
+    filters:
+      instance-state-name: running
+      "tag:Tenant": "{{ tenant }}"
+      "tag:Project": "{{ project }}"
+      "tag:Domain": "{{ domain }}"
+      "tag:Application": 'zookeeper'
+      "tag:Cluster": "{{ cluster | default ('a') }}"
+      "tag:Dataflow": "{{ dataflow | default ('none') }}"
+  register: all_zookeeper_nodes
+  when:
+    - cloud == 'aws'
+    - "'zookeeper' in groups | default([])"
+
+- block:
+
+  # construct list of all interfaces attached to zookeeper nodes
+  - set_fact:
+      zookeeper_interfaces: "{{ all_zookeeper_nodes.instances | map(attribute='network_interfaces') | list }}"
+
+  # apply zookeeper rule and the internal SSH rule
+  - name: CONFLUENT OVERLAY | applying zookeeper security rules to interface 0
+    ec2_eni:
+      region: "{{ region }}"
+      eni_id: "{{ item.network_interface_id }}"
+      security_groups:
+        - "{{ sg_zookeeper_internal.group_id }}"
+        - "{{ sg_ssh_private.security_groups.0.group_id }}"
+    with_items: "{{ zookeeper_interfaces }}"
+    when: item.attachment.device_index == 0
+
+  when:
+    - "'zookeeper' in groups | default([])"
+    - groups.zookeeper | length > 0

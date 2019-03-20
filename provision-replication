@@ -9,7 +9,7 @@
   tags:
     - confluent
   vars_files:
-    - vars/confluent.yml
+    - "{{ tenant_config_path }}/config/applications/confluent.yml"
   vars:
       # this is semi clever; application gets set based on each host group
       application: "{{ group_names | first }}"
@@ -23,7 +23,7 @@
   tags:
     - confluent
   vars_files:
-    - vars/confluent.yml
+    - "{{ tenant_config_path }}/config/applications/confluent.yml"
   gather_facts: yes
   tasks:
     - import_role:
@@ -60,7 +60,7 @@
   tags:
     - confluent
   vars_files:
-    - vars/replicator.yml
+    - "{{ tenant_config_path }}/config/applications/replicator.yml"
   gather_facts: yes
   tasks:
     - import_role:
@@ -71,7 +71,7 @@
   tags:
     - confluent
   vars_files:
-    - vars/postflight.yml
+    - "{{ tenant_config_path }}/config/applications/postflight.yml"
   vars:
       # this is semi clever; application gets set based on each host group
       application: "{{ group_names | first }}"

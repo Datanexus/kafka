@@ -6,7 +6,7 @@
 - name: CONFLUENT OVERLAY | collecting configuration files
   hosts: zookeeper:kafka_broker:registry:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
   vars_files:
-    - vars/collector.yml
+    - "{{ tenant_config_path }}/config/applications/collector.yml"
   vars:
       # this is semi clever; application gets set based on each host group
       application: "{{ group_names | first }}"

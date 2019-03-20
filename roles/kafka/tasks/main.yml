@@ -194,6 +194,28 @@
       - groups['controlcenter'] is defined
       - groups['controlcenter'] | length > 0
     notify: restart broker
+  
+  - name: CONFLUENT OVERLAY (BROKER) | installing cruise control metrics reporter
+    copy:
+      src: "{{ key_path }}/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
+      dest: /usr/share/java/kafka
+      owner: root
+      group: root
+      mode: 0644
+    when:
+      - groups['cruisecontrol'] is defined
+      - groups['cruisecontrol'] | length > 0
+    
+  - name: CONFLUENT OVERLAY (BROKER) | enabling cruise control metrics for {{ kafka.service_name }}
+    lineinfile:
+      path: "{{ kafka.config_file }}"
+      regexp: '^metric.reporters='
+      line: "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
+      insertafter: '^#metric.reporters='
+    when:
+      - groups['cruisecontrol'] is defined
+      - groups['cruisecontrol'] | length > 0
+    notify: restart broker
     
   - name: CONFLUENT OVERLAY (BROKER) | enabling and configuring control center metrics bootstrap servers for {{ kafka.service_name }}
     lineinfile:
@@ -205,7 +227,18 @@
       - groups['controlcenter'] is defined
       - groups['controlcenter'] | length > 0
     notify: restart broker
- 
+  
+  - name: CONFLUENT OVERLAY (BROKER) | enabling and configuring cruise control metrics bootstrap servers for {{ kafka.service_name }}
+    lineinfile:
+      path: "{{ kafka.config_file }}"
+      regexp: '^cruise.control.metrics.reporter.bootstrap.servers='
+      line: "cruise.control.metrics.reporter.bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      insertafter: '^#confluent.metrics.reporter.bootstrap.servers='
+    when:
+      - groups['cruisecontrol'] is defined
+      - groups['cruisecontrol'] | length > 0
+    notify: restart broker
+    
   - name: CONFLUENT OVERLAY (BROKER) | enabling and configuring control center metrics for {{ kafka.service_name }}
     lineinfile:
       path: "{{ kafka.config_file }}"
@@ -405,6 +438,6 @@
     systemd:
       name: "{{ kafka.service_name }}"
       state: started
-            
+    
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

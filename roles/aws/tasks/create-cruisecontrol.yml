@@ -1,0 +1,22 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# create AWS cruise control security group rules
+---
+- name: CRUISE CONTROL OVERLAY | creating cruise control security group
+  local_action:
+    module: ec2_group
+    name: "dnsg_{{ project }}_cruisecontrol_private_external"
+    description: "cruise control ingress and unrestricted egress rules (ansible)"
+    vpc_id: "{{ specified_vpc.vpcs.0.id }}"
+    region: "{{ region }}"
+    rules:
+      - proto: tcp
+        from_port: "{{ cruisecontrol_port | default(cruisecontrol.config.port) }}"
+        to_port: "{{ cruisecontrol_port | default(cruisecontrol.config.port) }}"
+        cidr_ip: "{{ external_subnet }}"
+    rules_egress:
+      # Allow all outbound
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  when: "'cruisecontrol' in groups | default([])"
+  register: sg_cruisecontrol_external

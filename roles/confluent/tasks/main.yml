@@ -2,6 +2,9 @@
 #
 #
 ---
+- set_fact:
+    confluent_platform_version: "{{ confluent_distribution }}-{{ application_version | default(packages.scala_version) }}"
+        
 - name: CONFLUENT OVERLAY | installing confluent platform public key
   rpm_key:
     state: present
@@ -11,14 +14,7 @@
 # CentOS / Redhat 7
 - block:
   
-  - name: CONFLUENT OVERLAY | installing Java packages
-    package:
-      name: "{{ item }}"
-      state: present
-    with_items:
-      - epel-release-7-11
-      - "java-{{ java_version }}-openjdk"
-      - "java-{{ java_version }}-openjdk-devel"
+  - import_tasks: install-java.yml
       
   - name: CONFLUENT OVERLAY | configuring confluent platform repo for CentOS / Redhat
     template:
@@ -26,9 +22,9 @@
       dest: /etc/yum.repos.d/confluent.repo
       mode: 0644
 
-  - name: CONFLUENT OVERLAY | installing {{ confluent_platform_version }}
+  - name: CONFLUENT OVERLAY | installing {{ application_version | default(confluent_platform_version) }}
     package:
-      name: "{{ confluent_platform_version }}"
+      name: "{{ application_version | default(confluent_platform_version) }}"
       state: present
     notify: yum-clean-all
         

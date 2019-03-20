@@ -1,0 +1,31 @@
+#!/bin/sh
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
+	printf "Usage:\\t{{ cruisecontrol.service_name}} [-h]\\thelp\\n"
+	printf "Usage:\\tsudo -H -u {{ cruisecontrol.user }} {{ cruisecontrol.user_service }}/{{ cruisecontrol.service_name}} [ start | stop | restart ]\\n"
+	exit 0
+fi
+
+if [ "$1" = "start" ] ; then
+  pid=`/usr/bin/jcmd | grep com.linkedin.kafka.cruisecontrol.KafkaCruiseControlMain | /usr/bin/cut -d " " -f 1`
+  if [ -z ${pid} ]; then
+  	printf "[%s %s] INFO Starting {{ cruisecontrol.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ cruisecontrol.config.log }}/{{ cruisecontrol.service_name }}.log
+    cd {{ cruisecontrol.source_dir}}/{{ cruisecontrol.service_name }}
+    /usr/bin/nohup /usr/local/src/cruise-control/kafka-cruise-control-start.sh {{ cruisecontrol.config_file }} >> {{ cruisecontrol.config.log }}/{{ cruisecontrol.service_name }}.log 2>&1 &
+  fi
+elif [ "$1" = "stop" ] ; then
+  pid=`/usr/bin/jcmd | grep com.linkedin.kafka.cruisecontrol.KafkaCruiseControlMain | /usr/bin/cut -d " " -f 1`
+  if [[ ${pid} ]] && [[ -n "$(/usr/bin/ps -p ${pid} -o pid=)" ]]; then
+    printf "[%s %s] INFO Stopping {{ cruisecontrol.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ cruisecontrol.config.log }}/{{ cruisecontrol.service_name }}.log
+   /usr/bin/kill $pid
+  fi
+elif [ "$1" = "restart" ] ; then
+  pid=`/usr/bin/jcmd | grep com.linkedin.kafka.cruisecontrol.KafkaCruiseControlMain | /usr/bin/cut -d " " -f 1`
+  if [[ ${pid} ]] && [[ -n "$(/usr/bin/ps -p ${pid} -o pid=)" ]]; then
+    printf "[%s %s] INFO Stopping {{ cruisecontrol.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ cruisecontrol.config.log }}/{{ cruisecontrol.service_name }}.log
+    /usr/bin/kill $pid
+  fi
+  printf "[%s %s] INFO Starting {{ cruisecontrol.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ cruisecontrol.config.log }}/{{ cruisecontrol.service_name }}.log
+  cd {{ cruisecontrol.source_dir}}/{{ cruisecontrol.service_name }}
+  /usr/bin/nohup /usr/local/src/cruise-control/kafka-cruise-control-start.sh {{ cruisecontrol.config_file }} >> {{ cruisecontrol.config.log }}/{{ cruisecontrol.service_name }}.log 2>&1 &
+fi

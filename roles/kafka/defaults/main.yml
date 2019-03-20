@@ -1,4 +1,6 @@
 # configuration variables for kafka broker services
+cruisecontrol:
+  version: '2.0.36'
 zookeeper:
   config:
     # this needs to be quoted as a string for concatenation purposes

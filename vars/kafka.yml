@@ -1,8 +1,0 @@
-# (c) 2018 DataNexus Inc.  All Rights Reserved.
----
-# this needs to be quoted as a string for concatenation purposes
-kafka_log_dir:
-  - '/var/lib/kafka'
-# this can either be 'auto' or an integer for JVM heap settings
-# jvm_heap: auto
-

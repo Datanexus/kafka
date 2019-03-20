@@ -1,0 +1,12 @@
+# (c) Copyright 2019 DataNexus Inc.  All Rights Reserved.
+#
+# install java
+---
+- name: CONFLUENT OVERLAY | installing java {{ packages.java_version }} packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "epel-release-{{ packages.epel_version }}"
+    - "java-{{ packages.java_version }}-openjdk"
+    - "java-{{ packages.java_version }}-openjdk-devel"
