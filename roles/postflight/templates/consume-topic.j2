@@ -10,13 +10,13 @@ elif [[ $# -ge 2 && "$1" = "-b" ]] ; then
    BROKER_HOSTS=$2
    shift && shift
 elif [ $# -eq 1 ]; then
-  BROKER_HOSTS={{ groups['kafka_public'] | join(':9092,') }}:{{ broker.config.port }}
+  BROKER_HOSTS={{ groups['kafka_public'] | join(':9092,') }}:{{ kafka.config.broker_port }}
 fi
 
 # we want to verify the topic exists before we consume it
-/usr/local/bin/list-topics | /usr/bin/grep $1 &> /dev/null
+{{ postflight.utilsDir }}/list-topics | /usr/bin/grep $1 &> /dev/null
  if [ $? == 0 ]; then
-   /usr/bin/kafka-console-consumer --bootstrap-server $BROKER_HOSTS --topic $1 --from-beginning
+   {{ utils_path }}/kafka-console-consumer{{ bin_suffix }} --bootstrap-server $BROKER_HOSTS --topic $1 --from-beginning
  else
    printf "$1 topic does not exist!\n"
    exit 1

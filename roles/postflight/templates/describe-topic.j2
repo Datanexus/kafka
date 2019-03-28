@@ -3,7 +3,7 @@
 
 # no arguments means describe all
 if [ $# -eq 0 ] ; then
-  ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:2181
+  ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:{{ zookeeper.config.port }}
   TOPICS=`/usr/bin/kafka-topics --list --zookeeper $ZOOKEEPER_HOSTS`
 # help
 elif [ "$1" = "-h" ] ; then
@@ -17,10 +17,10 @@ elif [[ $# -ge 2 && "$1" = "-z" ]] ; then
   TOPICS=$@
 # topics as listed
 elif [ $# -ge 1 ] ; then
-	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:2181
+	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:{{ zookeeper.config.port }}
   TOPICS=$@
 fi
 
 for topic in $TOPICS; do
-  /usr/bin/kafka-topics --describe --zookeeper $ZOOKEEPER_HOSTS --topic $topic
+  {{ utils_path }}/kafka-topics{{ bin_suffix }} --describe --zookeeper $ZOOKEEPER_HOSTS --topic $topic
 done

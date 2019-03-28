@@ -1,7 +1,10 @@
 # (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
 #
 #
---- 
+---
+# this isn't strictly necessary for ksql, but the kafka broker default variables need JVM settings
+- import_tasks: tune.yml
+  
 - import_tasks: interface-facts.yml
 
 - block:

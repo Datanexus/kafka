@@ -2,6 +2,9 @@
 #
 # routines for provisioning registry services
 ---
+# this isn't strictly necessary for the registry, but the zookeeper default variables need JVM settings
+- import_tasks: tune.yml
+
 - import_tasks: interface-facts.yml
 
 - block:

@@ -3,106 +3,117 @@
 # main zookeeper configuration routines
 ---
 - import_tasks: tune.yml
-
 - import_tasks: interface-facts.yml
 
-- block:
+- set_fact: 
+    zookeeper_user: "{{ (apache_kafka) | ternary(zookeeper.apache.user, zookeeper.confluent.user) }}"
+
+- set_fact: 
+    zookeeper_group: "{{ (apache_kafka) | ternary(zookeeper.apache.group, zookeeper.confluent.group) }}"
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper_data_dir | default(zookeeper.config.dataDir) }} exists and have the correct permissions for {{ zookeeper.service_name }}
+- set_fact: 
+    zookeeper_service_name: "{{ (apache_kafka) | ternary(zookeeper.apache.service_name, zookeeper.confluent.service_name) }}"
+
+- set_fact: 
+    zookeeper_config_file: "{{ (apache_kafka) | ternary(zookeeper.apache.config_file, zookeeper.confluent.config_file) }}"
+      
+- block:
+    
+  - name: KAFKA OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper_data_dir | default(zookeeper.config.dataDir) }} exists and has the correct permissions for {{ zookeeper_service_name }}
     file:
       path: "{{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}"
-      owner: "{{ zookeeper.user }}"
-      group: "{{ zookeeper.group }}"
+      owner: "{{ zookeeper_user }}"
+      group: "{{ zookeeper_group }}"
       state: directory
       mode: 0750
     
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} dataDir
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} dataDir
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^dataDir='
       line: "dataDir={{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}"
     notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} on {{ zookeeper_interface_ipv4 }}
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} on {{ zookeeper_interface_ipv4 }}
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^clientPortAddress='
       line: "clientPortAddress={{ zookeeper_interface_ipv4 }}"
     notify: restart zookeeper
     
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} on {{ zookeeper.config.port }}
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} on {{ zookeeper.config.port }}
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^clientPort='
       line: "clientPort={{ zookeeper.config.port }}"
     notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} maxClientCnxns
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} maxClientCnxns
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^maxClientCnxns='
       line: "maxClientCnxns={{ zookeeper.config.maxClientCnxns }}"
     when: not((zookeeper.config.maxClientCnxns is undefined) or (zookeeper.config.maxClientCnxns is none) or (zookeeper.config.maxClientCnxns | trim == ''))
     notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} tickTime
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} tickTime
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^tickTime='
       line: "tickTime={{ zookeeper.config.tickTime }}"
     when: not((zookeeper.config.tickTime is undefined) or (zookeeper.config.tickTime is none) or (zookeeper.config.tickTime | trim == ''))
     notify: restart zookeeper
     
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} initLimit
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} initLimit
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^initLimit='
       line: "initLimit={{ zookeeper.config.initLimit }}"
     when: not((zookeeper.config.initLimit is undefined) or (zookeeper.config.initLimit is none) or (zookeeper.config.initLimit | trim == ''))
     notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} syncLimit
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} syncLimit
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^syncLimit='
       line: "syncLimit={{ zookeeper.config.syncLimit }}"
     when: not((zookeeper.config.syncLimit is undefined) or (zookeeper.config.syncLimit is none) or (zookeeper.config.syncLimit | trim == ''))
     notify: restart zookeeper
     
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} autopurge.snapRetainCount
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} autopurge.snapRetainCount
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^autopurge.snapRetainCount='
       line: "autopurge.snapRetainCount={{ zookeeper.config.autopurge_snapRetainCount }}"
     when: not((zookeeper.config.autopurge_snapRetainCount is undefined) or (zookeeper.config.autopurge_snapRetainCount is none) or (zookeeper.config.autopurge_snapRetainCount | trim == ''))
     notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} autopurge.purgeInterval
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} autopurge.purgeInterval
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: '^autopurge.purgeInterval='
       line: "autopurge.purgeInterval={{ zookeeper.config.autopurge_purgeInterval }}"
     when: not((zookeeper.config.autopurge_purgeInterval is undefined) or (zookeeper.config.autopurge_purgeInterval is none) or (zookeeper.config.autopurge_purgeInterval | trim == ''))
     notify: restart zookeeper
 
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ ansible_play_hosts | length }} {{ zookeeper.service_name }} hosts
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ ansible_play_hosts | length }} {{ zookeeper_service_name }} hosts
     lineinfile:
-      path: "{{ zookeeper.config_file }}"
+      path: "{{ zookeeper_config_file }}"
       regexp: "^server.{{ item.0 + 1 | int }}="
       line: "server.{{ item.0 + 1 | int }}={{ item.1 }}:2888:3888"
     with_indexed_items: "{{ ansible_play_hosts }}"
     notify: restart zookeeper
 
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | configuring {{ zookeeper.service_name }} myid file
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} myid file
     template:
       src: myid.j2
       dest: "{{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}/myid"
       mode: 0644
-      owner: "{{ zookeeper.user }}"
-      group: "{{ zookeeper.group }}"
+      owner: "{{ zookeeper_user }}"
+      group: "{{ zookeeper_group }}"
     notify: restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper.user_service }} exists
+  - name: KAFKA OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper.user_service }} exists
     file:
       path: "{{ zookeeper.user_service }}"
       owner: root
@@ -110,40 +121,75 @@
       state: directory
       mode: 0755
       
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | installing {{ zookeeper.service_name }} into {{ zookeeper.user_service }}
+  - set_fact: 
+      zookeeper_wrapper: "{{ (apache_kafka) | ternary('apache.zookeeper.j2', 'confluent.zookeeper.j2') }}"
+      
+  - name: KAFKA OVERLAY (ZOOKEEPER) | installing {{ zookeeper_service_name }} into {{ zookeeper.user_service }}
     template:
-      src: confluent.zookeeper.j2
-      dest: "{{ zookeeper.user_service }}/confluent-zookeeper"
+      src: "{{ zookeeper_wrapper }}"
+      dest: "{{ zookeeper.user_service }}/zookeeper"
       mode: 0755
-      owner: "{{ zookeeper.user }}"
-      group: "{{ zookeeper.group }}"
+      owner: "{{ zookeeper_user }}"
+      group: "{{ zookeeper_group }}"
       
   become: yes
   
 - block:
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | creating systemd override directory
+  - block:
+    
+    - name: KAFKA OVERLAY (BROKER) | ensuring {{ zookeeper.environment.LOG_DIR }} exists
+      file:
+        path: "{{ zookeeper.environment.LOG_DIR }}"
+        owner: "{{ zookeeper_user }}"
+        group: "{{ zookeeper_group }}"
+        state: directory
+        mode: 0755
+    
+    - name: KAFKA OVERLAY (ZOOKEEPER) | installing systemd {{ zookeeper_service_name }} script
+      template:
+        src: apache-zookeeper.service.j2
+        dest: "/etc/systemd/system/{{ zookeeper_service_name }}.service"
+        mode: 0640
+        owner: "{{ zookeeper_user }}"
+        group: "{{ zookeeper_group }}"
+      notify:
+        - reload systemd
+    
+    - name: KAFKA OVERLAY (ZOOKEEPER) | enabling {{ zookeeper_service_name }}
+      systemd:
+        name: "{{ zookeeper_service_name }}.service"
+        enabled: yes
+        
+    when:
+      - apache_kafka
+      - not confluent_kafka
+  
+  - set_fact: 
+      zookeeper_override_name: "{{ (apache_kafka) | ternary(zookeeper.apache.systemd_override, zookeeper.confluent.systemd_override) }}"
+      
+  - name: KAFKA OVERLAY (ZOOKEEPER) | creating systemd override directory {{ zookeeper_override_name }}
     file:
-      path: "{{ zookeeper.systemd_override }}"
-      owner: "{{ zookeeper.user }}"
-      group: "{{ zookeeper.group }}"
+      path: "{{ zookeeper_override_name }}"
+      owner: "{{ zookeeper_user }}"
+      group: "{{ zookeeper_group }}"
       state: directory
       mode: 0750
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | installing {{ zookeeper.service_name }} environment override
+  - name: KAFKA OVERLAY (ZOOKEEPER) | installing {{ zookeeper_service_name }} environment override
     template:
       src: environment.j2
-      dest: "{{ zookeeper.systemd_override }}/override.conf"
+      dest: "{{ zookeeper_override_name }}/override.conf"
       mode: 0640
-      owner: "{{ zookeeper.user }}"
-      group: "{{ zookeeper.group }}"
+      owner: "{{ zookeeper_user }}"
+      group: "{{ zookeeper_group }}"
     notify:
       - reload systemd
       - restart zookeeper
   
-  - name: CONFLUENT OVERLAY (ZOOKEEPER) | starting {{ zookeeper.service_name }}
+  - name: KAFKA OVERLAY (ZOOKEEPER) | starting {{ zookeeper_service_name }}
     systemd:
-      name: "{{ zookeeper.service_name }}"
+      name: "{{ zookeeper_service_name }}"
       state: started
     
   become: yes

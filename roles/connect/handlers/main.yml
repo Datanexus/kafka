@@ -8,6 +8,6 @@
   
 - name: restart connect
   systemd:
-    name: "{{ connect.distributed.service_name }}"
+    name: "{{ connect_service_name }}"
     state: restarted
   become: yes

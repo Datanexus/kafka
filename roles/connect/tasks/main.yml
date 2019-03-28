@@ -5,119 +5,131 @@
 - import_tasks: tune.yml
 
 - import_tasks: interface-facts.yml
+
+- set_fact: 
+    connect_user: "{{ (apache_kafka) | ternary(connect.distributed.apache.user, connect.distributed.confluent.user) }}"
+
+- set_fact: 
+     connect_group: "{{ (apache_kafka) | ternary(connect.distributed.apache.group, connect.distributed.confluent.group) }}"
   
+- set_fact: 
+    connect_service_name: "{{ (apache_kafka) | ternary(connect.distributed.apache.service_name, connect.distributed.confluent.service_name) }}"
+
+- set_fact: 
+    connect_config_file: "{{ (apache_kafka) | ternary(connect.distributed.apache.config_file, connect.distributed.confluent.config_file) }}"
+    
 - block:
   
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring bootstrap servers for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring bootstrap servers for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^bootstrap.servers='
-      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + broker.config.broker_port + ',') }}:{{ broker.config.broker_port }}"
+      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
     notify: restart connect
     
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring cluster group id for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring cluster group id for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^group.id='
       line: "group.id={{ connect.distributed.config.group_id }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring key converter for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring key converter for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^key.converter='
       line: "key.converter={{ connect.distributed.config.key_converter }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring value converter for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^value.converter='
       line: "value.converter={{ connect.distributed.config.value_converter }}"
     notify: restart connect
             
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring key converter schema enablement for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring key converter schema enablement for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^key.converter.schemas.enable='
       line: "key.converter.schemas.enable={{ connect.distributed.config.key_converter_schemas_enable }}"
     notify: restart connect
             
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring value converter schema enablement for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring value converter schema enablement for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^value.converter.schemas.enable='
       line: "value.converter.schemas.enable={{ connect.distributed.config.value_converter_schemas_enable }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring storage offset topic for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^offset.storage.topic='
       line: "offset.storage.topic={{ connect.distributed.config.offset_storage_topic }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic replication factor for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring storage offset topic replication factor for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^offset.storage.replication.factor='
       line: "offset.storage.replication.factor={{ connect.distributed.config.offset_storage_replication_factor }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring storage offset topic for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^config.storage.topic='
       line: "config.storage.topic={{ connect.distributed.config.config_storage_topic }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring storage offset topic replication factor for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring storage offset topic replication factor for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^config.storage.replication.factor='
       line: "config.storage.replication.factor={{ connect.distributed.config.config_storage_replication_factor }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring status storage topic for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring status storage topic for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^status.storage.topic='
       line: "status.storage.topic={{ connect.distributed.config.status_storage_topic }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring status storage topic replication factor for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring status storage topic replication factor for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^status.storage.replication.factor='
       line: "status.storage.replication.factor={{ connect.distributed.config.status_storage_replication_factor }}"
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring offset flush interval for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | configuring offset flush interval for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^offset.flush.interval.ms='
       line: "offset.flush.interval.ms={{ connect.distributed.config.offset_flush_interval_ms }}"
     notify: restart connect
 
-  - name: CONFLUENT OVERLAY (CONNECT) | enabling and configuring ReST host for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | enabling and configuring ReST host for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^rest.host.name='
       line: "rest.host.name={{ connector_rest_interface_ipv4 }}"
       insertafter: '^#rest.host.name='
     notify: restart connect
 
-  - name: CONFLUENT OVERLAY (CONNECT) | enabling and configuring ReST port for {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | enabling and configuring ReST port for {{ connect_service_name }}
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^rest.port='
       line: "rest.port={{ connect.distributed.config.rest_port }}"
       insertafter: '^#rest.port='
     notify: restart connect
         
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring kafka connect properties for consumer interceptors for control center
+  - name: KAFKA OVERLAY (CONNECT) | configuring kafka connect properties for consumer interceptors for control center
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^consumer.interceptor.classes='
       line: 'consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor'
     when:
@@ -125,9 +137,9 @@
       - groups['controlcenter'] | length > 0
     notify: restart connect
 
-  - name: CONFLUENT OVERLAY (CONNECT) | configuring kafka connect properties for producers interceptors for control center
+  - name: KAFKA OVERLAY (CONNECT) | configuring kafka connect properties for producers interceptors for control center
     lineinfile:
-      path: "{{ connect.distributed.config_file }}"
+      path: "{{ connect_config_file }}"
       regexp: '^producer.interceptor.classes='
       line: 'producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor'
     when:
@@ -135,7 +147,7 @@
       - groups['controlcenter'] | length > 0
     notify: restart connect
   
-  - name: CONFLUENT OVERLAY (CONNECT) | ensuring {{ connect.distributed.user_service }} exists
+  - name: KAFKA OVERLAY (CONNECT) | ensuring {{ connect.distributed.user_service }} exists
     file:
       path: "{{ connect.distributed.user_service }}"
       owner: root
@@ -143,57 +155,87 @@
       state: directory
       mode: 0755
 
-  - name: CONFLUENT OVERLAY (CONNECT) | ensuring /var/log/kafka exists
+  - name: KAFKA OVERLAY (CONNECT) | ensuring {{ connect.distributed.environment.LOG_DIR }} exists
     file:
-      path: /var/log/kafka
-      owner: "{{ connect.distributed.user }}"
-      group: "{{ connect.distributed.group }}"
+      path: "{{ connect.distributed.environment.LOG_DIR }}"
+      owner: "{{ connect_user }}"
+      group: "{{ connect_group }}"
       state: directory
       mode: 0755
       
   # this is datanexus original logging, so we need to make sure it exists since it's not handled via standard install
-  - name: CONFLUENT OVERLAY (CONNECT) | ensuring /var/log/kafka/connect.log exists
+  - name: KAFKA OVERLAY (CONNECT) | ensuring {{ connect.distributed.environment.LOG_DIR }}/connect.log exists
     file:
-      path: /var/log/kafka/connect.log
-      owner: "{{ connect.distributed.user }}"
-      group: "{{ connect.distributed.group }}"
+      path: "{{ connect.distributed.environment.LOG_DIR }}/connect.log"
+      owner: "{{ connect_user }}"
+      group: "{{ connect_group }}"
       state: touch
-      mode: 0644   
+      mode: 0644
+  
+  - set_fact: 
+      connect_wrapper: "{{ (apache_kafka) | ternary('apache.connect.j2', 'confluent.connect.j2') }}"
       
-  - name: CONFLUENT OVERLAY (CONNECT) | installing {{ connect.distributed.service_name }} into {{ connect.distributed.user_service }}
+  - name: KAFKA OVERLAY (CONNECT) | installing {{ connect_service_name }} into {{ connect.distributed.user_service }}
     template:
-      src: confluent.connect.j2
-      dest: "{{ connect.distributed.user_service }}/confluent-kafka-connect"
+      src: "{{ connect_wrapper }}"
+      dest: "{{ connect.distributed.user_service }}/kafka-connect"
       mode: 0755
-      owner: "{{ connect.distributed.user }}"
-      group: "{{ connect.distributed.group }}"
+      owner: "{{ connect_user }}"
+      group: "{{ connect_group }}"
     
   become: yes
  
 - block:
   
-  - name: CONFLUENT OVERLAY (CONNECT) | creating systemd override directory
+  - block:
+        
+    - name: KAFKA OVERLAY (CONNECT) | installing systemd {{ connect_service_name }} script
+      template:
+        src: apache-kafka.service.j2
+        dest: "/etc/systemd/system/{{ connect_service_name }}.service"
+        mode: 0640
+        owner: "{{ connect_user }}"
+        group: "{{ connect_group }}"
+      notify:
+        - reload systemd
+    
+    - name: KAFKA OVERLAY (CONNECT) | enabling {{ connect_service_name }}
+      systemd:
+        name: "{{ connect_service_name }}.service"
+        enabled: yes
+        
+    when:
+      - apache_kafka
+      - not confluent_kafka
+      
+  - set_fact: 
+      connect_override_name: "{{ (apache_kafka) | ternary(connect.distributed.apache.systemd_override, connect.distributed.confluent.systemd_override) }}"
+      
+  - name: KAFKA OVERLAY (CONNECT) | creating systemd override directory
     file:
-      path: "{{ connect.distributed.systemd_override }}"
-      owner: "{{ connect.distributed.user }}"
-      group: "{{ connect.distributed.group }}"
+      path: "{{ connect_override_name }}"
+      owner: "{{ connect_user }}"
+      group: "{{ connect_group }}"
       state: directory
       mode: 0750
  
-  - name: CONFLUENT OVERLAY (CONNECT) | installing {{ connect.distributed.service_name }} environment overrride
+  - set_fact:
+      connect_override_name: "{{ (apache_kafka) | ternary(connect.distributed.apache.systemd_override, connect.distributed.confluent.systemd_override) }}"
+   
+  - name: KAFKA OVERLAY (CONNECT) | installing {{ connect_service_name }} environment overrride
     template:
       src: environment.j2
-      dest: "{{ connect.distributed.systemd_override }}/override.conf"
+      dest: "{{ connect_override_name }}/override.conf"
       mode: 0640
-      owner: "{{ connect.distributed.user }}"
-      group: "{{ connect.distributed.group }}"
+      owner: "{{ connect_user }}"
+      group: "{{ connect_group }}"
     notify:
       - reload systemd
       - restart connect
   
-  - name: CONFLUENT OVERLAY (CONNECT) | starting {{ connect.distributed.service_name }}
+  - name: KAFKA OVERLAY (CONNECT) | starting {{ connect_service_name }}
     systemd:
-      name: "{{ connect.distributed.service_name }}"
+      name: "{{ connect_service_name }}"
       state: started
       
   become: yes

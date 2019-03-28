@@ -2,16 +2,16 @@
 #
 # install gradle from binaries
 ---
-- name: CRUISE CONTROL GRADLE OVERLAY | checking for /tmp/gradle-{{ gradle_version | default(packages.gradle_version) }}-bin.zip existence
-  stat: path="/tmp/gradle-{{ gradle_version | default(packages.gradle_version) }}-bin.zip"
+- name: CRUISE CONTROL GRADLE OVERLAY | checking for /tmp/gradle-{{ gradle_version | default(cruisecontrol.packages.gradle_version) }}-bin.zip existence
+  stat: path="/tmp/gradle-{{ gradle_version | default(cruisecontrol.packages.gradle_version) }}-bin.zip"
   register: existing_package
 
 - block:
   
-  - name: CRUISE CONTROL GRADLE OVERLAY | downloading gradle version {{ gradle_version | default(packages.gradle_version) }}.tar.gz
+  - name: CRUISE CONTROL GRADLE OVERLAY | downloading gradle version {{ gradle_version | default(cruisecontrol.packages.gradle_version) }}.tar.gz
     get_url:
-      url: "https://services.gradle.org/distributions/gradle-{{ gradle_version | default(packages.gradle_version) }}-bin.zip"
-      dest: "/tmp/gradle-{{ gradle_version | default(packages.gradle_version) }}-bin.zip"
+      url: "https://services.gradle.org/distributions/gradle-{{ gradle_version | default(cruisecontrol.packages.gradle_version) }}-bin.zip"
+      dest: "/tmp/gradle-{{ gradle_version | default(cruisecontrol.packages.gradle_version) }}-bin.zip"
       mode: 0600
   
   when: not existing_package.stat.exists
@@ -20,7 +20,7 @@
   
   - name: CRUISE CONTROL OVERLAY | installing gradle
     unarchive:
-      src: "/tmp/gradle-{{ gradle_version | default(packages.gradle_version) }}-bin.zip"
+      src: "/tmp/gradle-{{ gradle_version | default(cruisecontrol.packages.gradle_version) }}-bin.zip"
       dest: "{{ source_dir }}"
       owner: root
       group: root
@@ -32,7 +32,7 @@
 - name: CRUISE CONTROL GRADLE OVERLAY | updating {{ ansible_user }} environment variables
   lineinfile:
     path: "/home/{{ ansible_user }}/.zshrc"
-    line: "export GRADLE_HOME={{ source_dir }}/gradle-{{ gradle_version | default(packages.gradle_version) }}"
+    line: "export GRADLE_HOME={{ source_dir }}/gradle-{{ gradle_version | default(cruisecontrol.packages.gradle_version) }}"
     
 - name: CRUISE CONTROL GRADLE OVERLAY | updating {{ ansible_user }} path
   lineinfile:

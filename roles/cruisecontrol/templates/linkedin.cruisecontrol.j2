@@ -2,7 +2,7 @@
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\t{{ cruisecontrol.service_name}} [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ cruisecontrol.user }} {{ cruisecontrol.user_service }}/{{ cruisecontrol.service_name}} [ start | stop | restart ]\\n"
+	printf "Usage:\\tsudo -H -u {{ cruisecontrol_user }} {{ cruisecontrol.user_service }}/{{ cruisecontrol.service_name}} [ start | stop | restart ]\\n"
 	exit 0
 fi
 

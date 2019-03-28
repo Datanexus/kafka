@@ -11,16 +11,16 @@ if [ "$1" = "start" ] ; then
   {% for key, value in zookeeper.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/zookeeper-server-start {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/server.log 2>&1 &
+  /usr/bin/nohup {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/zookeeper-server-start.sh {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/server.log 2>&1 &
 elif [ "$1" = "stop" ] ; then
 	printf "[%s %s] INFO Stopping {{ zookeeper_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ zookeeper.environment.LOG_DIR }}/server.log
-	/usr/bin/zookeeper-server-stop {{ zookeeper_config_file }}
+	{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/zookeeper-server-stop.sh {{ zookeeper_config_file }}
 elif [ "$1" = "restart" ] ; then
 	printf "[%s %s] INFO Stopping {{ zookeeper_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ zookeeper.environment.LOG_DIR }}/server.log
-	/usr/bin/zookeeper-server-stop {{ zookeeper_config_file }}
+	{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/zookeeper-server-stop {{ zookeeper_config_file }}
 	printf "[%s %s] INFO Starting {{ zookeeper_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ zookeeper.environment.LOG_DIR }}/server.log
   {% for key, value in zookeeper.environment.items() -%}
   {{ " " ~ key  }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/zookeeper-server-start {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/server.log 2>&1 &
+  /usr/bin/nohup {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/zookeeper-server-start {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/server.log 2>&1 &
 fi

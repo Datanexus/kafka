@@ -2,7 +2,7 @@
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tbroker [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ broker_user }} {{ kafka.user_service }}/confluent-kafka [ start | stop | restart ]\\n"
+	printf "Usage:\\tsudo -H -u {{ broker_user }} {{ kafka.user_service }}/broker [ start | stop | restart ]\\n"
 	exit 0
 fi
 
@@ -11,16 +11,16 @@ if [ "$1" = "start" ] ; then
   {% for key, value in kafka.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/kafka-server-start {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
+  /usr/bin/nohup {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/kafka-server-start.sh {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
 elif [ "$1" = "stop" ] ; then
 	printf "[%s %s] INFO Stopping {{ broker_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafka.environment.LOG_DIR }}/server.log
-	/usr/bin/kafka-server-stop
+	{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/kafka-server-stop.sh
 elif [ "$1" = "restart" ] ; then
 	printf "[%s %s] INFO Stopping {{ broker_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafka.environment.LOG_DIR }}/server.log
-	/usr/bin/kafka-server-stop
+	{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/kafka-server-stop.sh
 	printf "[%s %s] INFO Starting {{ broker_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafka.environment.LOG_DIR }}/server.log
   {% for key, value in kafka.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/kafka-server-start {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
+  /usr/bin/nohup {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/kafka-server-start.sh {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
 fi

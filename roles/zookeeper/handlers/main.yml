@@ -9,7 +9,7 @@
 - name: restart zookeeper
   listen: "restart zookeeper"
   systemd:
-    name: "{{ zookeeper.service_name }}"
+    name: "{{ zookeeper_service_name }}"
     state: restarted
   become: true
 

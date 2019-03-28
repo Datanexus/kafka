@@ -6,187 +6,199 @@
 
 - import_tasks: interface-facts.yml
 
+- set_fact: 
+    broker_user: "{{ (apache_kafka) | ternary(kafka.apache.user, kafka.confluent.user) }}"
+
+- set_fact: 
+     broker_group: "{{ (apache_kafka) | ternary(kafka.apache.group, kafka.confluent.group) }}"
+  
+- set_fact: 
+    broker_service_name: "{{ (apache_kafka) | ternary(kafka.apache.service_name, kafka.confluent.service_name) }}"
+
+- set_fact: 
+    broker_config_file: "{{ (apache_kafka) | ternary(kafka.apache.config_file, kafka.confluent.config_file) }}"
+      
 - block:
 
-  - name: CONFLUENT OVERLAY (BROKER) | enabling topic deletion for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | enabling topic deletion for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^delete.topic.enable='
       line: "delete.topic.enable={{ kafka.config.topic_deletion }}"
     when: not((kafka.config.topic_deletion is undefined) or (kafka.config.topic_deletion is none) or (kafka.config.topic_deletion | trim == ''))  
     notify: restart broker
     
   # we use backrefs here to ensure that the line only gets inserted as needed
-  - name: CONFLUENT OVERLAY (BROKER) | disabling manual {{ kafka.service_name }} ids
+  - name: KAFKA OVERLAY (BROKER) | disabling manual {{ broker_service_name }} ids
     lineinfile:
       backrefs: yes
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^broker.id='
       line: '#broker.id='
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | enabling dynamic ids for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | enabling dynamic ids for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^broker.id.generation.enable='
       line: 'broker.id.generation.enable=true'
       insertafter: '^#broker.id'    
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} listeners
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} listeners
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^listeners='
       line: "listeners=PLAINTEXT://{{ kafka_interface_ipv4 }}:{{ kafka.config.broker_port }}"
       insertafter: '^#listeners='
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} advertised listeners
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} advertised listeners
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^advertised.listeners='
       line: "advertised.listeners=PLAINTEXT://{{ kafka_interface_ipv4 }}:{{ kafka.config.broker_port }}"
       insertafter: '^#advertised.listeners='
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} server network threads
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} server network threads
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^num.network.threads='
       line: "num.network.threads={{ kafka.config.num_network_threads }}"
     when: not((kafka.config.num_network_threads is undefined) or (kafka.config.num_network_threads is none) or (kafka.config.num_network_threads | trim == ''))
     notify: restart broker
   
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} server io threads
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} server io threads
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^num.io.threads='
       line: "num.io.threads={{ kafka.config.num_io_threads }}"
     when: not((kafka.config.num_io_threads is undefined) or (kafka.config.num_io_threads is none) or (kafka.config.num_io_threads | trim == ''))
     notify: restart broker
   
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} send buffer
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} send buffer
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^socket.send.buffer.bytes='
       line: "socket.send.buffer.bytes={{ kafka.config.socket_send_buffer_bytes }}"
     when: not((kafka.config.socket_send_buffer_bytes is undefined) or (kafka.config.socket_send_buffer_bytes is none) or (kafka.config.socket_send_buffer_bytes | trim == ''))
     notify: restart broker
   
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} receive buffer
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} receive buffer
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^socket.receive.buffer.bytes='
       line: "socket.receive.buffer.bytes={{ kafka.config.socket_receive_buffer_bytes }}"
     when: not((kafka.config.socket_receive_buffer_bytes is undefined) or (kafka.config.socket_receive_buffer_bytes is none) or (kafka.config.socket_receive_buffer_bytes | trim == ''))
     notify: restart broker
   
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} maximum size of an acceptable request
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} maximum size of an acceptable request
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^socket.request.max.bytes='
       line: "socket.request.max.bytes={{ kafka.config.socket_request_max_bytes }}"
     when: not((kafka.config.socket_request_max_bytes is undefined) or (kafka.config.socket_request_max_bytes is none) or (kafka.config.socket_request_max_bytes | trim == ''))
     notify: restart broker
   
-  - name: CONFLUENT OVERLAY (BROKER) | ensuring {{ kafka_log_dir | default(kafka.config.logDir) }} exists and has the correct permissions for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka_log_dir | default(kafka.config.logDir) }} exists and has the correct permissions for {{ broker_service_name }}
     file:
       path: "{{ item }}"
-      owner: "{{ kafka.user }}"
-      group: "{{ kafka.group }}"
+      owner: "{{ broker_user }}"
+      group: "{{ broker_group }}"
       state: directory
       mode: 0750
     with_items: "{{ kafka_log_dir | default(kafka.config.logDir) }}"
   
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} log directories
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} log directories
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.dirs='
       line: "log.dirs={{ kafka_log_dir | default(kafka.config.logDir) | join(',') }}"
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} default number of partitions
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} default number of partitions
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^num.partitions='
       line: "num.partitions={{ kafka.config.default_num_partitions }}"
     when: not((kafka.config.default_num_partitions is undefined) or (kafka.config.default_num_partitions is none) or (kafka.config.default_num_partitions | trim == ''))
     notify: restart broker
     
-  - name: CONFLUENT OVERLAY (BROKER) | configuring number of threads for {{ kafka.service_name }} data directory log recovery
+  - name: KAFKA OVERLAY (BROKER) | configuring number of threads for {{ broker_service_name }} data directory log recovery
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^num.recovery.threads.per.data.dir='
       line: "num.recovery.threads.per.data.dir={{ kafka.config.num_recovery_threads_per_data_dir }}"
     when: not((kafka.config.num_recovery_threads_per_data_dir is undefined) or (kafka.config.num_recovery_threads_per_data_dir is none) or (kafka.config.num_recovery_threads_per_data_dir | trim == ''))  
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring replication factor for {{ kafka.service_name }} group metadata internal topics
+  - name: KAFKA OVERLAY (BROKER) | configuring replication factor for {{ broker_service_name }} group metadata internal topics
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^offsets.topic.replication.factor='
       line: "offsets.topic.replication.factor={{ kafka.config.offsets_topic_replication_factor }}"
     when: not((kafka.config.offsets_topic_replication_factor is undefined) or (kafka.config.offsets_topic_replication_factor is none) or (kafka.config.offsets_topic_replication_factor | trim == ''))  
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring replication factor for {{ kafka.service_name }} transaction topic
+  - name: KAFKA OVERLAY (BROKER) | configuring replication factor for {{ broker_service_name }} transaction topic
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^transaction.state.log.replication.factor='
       line: "transaction.state.log.replication.factor={{ kafka.config.transaction_state_log_replication_factor }}"
     when: not((kafka.config.transaction_state_log_replication_factor is undefined) or (kafka.config.transaction_state_log_replication_factor is none) or (kafka.config.transaction_state_log_replication_factor | trim == ''))  
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | overriding min.insync.replicas for {{ kafka.service_name }} transaction topic
+  - name: KAFKA OVERLAY (BROKER) | overriding min.insync.replicas for {{ broker_service_name }} transaction topic
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^transaction.state.log.min.isr='
       line: "transaction.state.log.min.isr={{ kafka.config.transaction_state_log_min_isr }}"
     when: not((kafka.config.transaction_state_log_min_isr is undefined) or (kafka.config.transaction_state_log_min_isr is none) or (kafka.config.transaction_state_log_min_isr | trim == ''))  
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring minimum age for {{ kafka.service_name }} log deletion
+  - name: KAFKA OVERLAY (BROKER) | configuring minimum age for {{ broker_service_name }} log deletion
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.retention.hours='
       line: "log.retention.hours={{ kafka.config.log_retention_hours }}"
     when: not((kafka.config.log_retention_hours is undefined) or (kafka.config.log_retention_hours is none) or (kafka.config.log_retention_hours | trim == ''))  
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring maximum size of {{ kafka.service_name }} log segment files
+  - name: KAFKA OVERLAY (BROKER) | configuring maximum size of {{ broker_service_name }} log segment files
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.segment.bytes='
       line: "log.segment.bytes={{ kafka.config.log_segment_bytes }}"
     when: not((kafka.config.log_segment_bytes is undefined) or (kafka.config.log_segment_bytes is none) or (kafka.config.log_segment_bytes | trim == ''))  
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring interval at which {{ kafka.service_name }} log segments are checked
+  - name: KAFKA OVERLAY (BROKER) | configuring interval at which {{ broker_service_name }} log segments are checked
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.retention.check.interval.ms='
       line: "log.retention.check.interval.ms={{ kafka.config.log_retention_check_interval_ms }}"
     when: not((kafka.config.log_retention_check_interval_ms is undefined) or (kafka.config.log_retention_check_interval_ms is none) or (kafka.config.log_retention_check_interval_ms | trim == ''))  
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring zookeeper hosts for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | configuring zookeeper hosts for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^zookeeper.connect='
       line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
     notify: restart broker
       
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} zookeeper connection timeout
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} zookeeper connection timeout
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^zookeeper.connection.timeout.ms='
       line: "zookeeper.connection.timeout.ms={{ kafka.config.zookeeper_connection_timeout_ms }}"
     when: not((kafka.config.zookeeper_connection_timeout_ms is undefined) or (kafka.config.zookeeper_connection_timeout_ms is none) or (kafka.config.zookeeper_connection_timeout_ms | trim == ''))  
     notify: restart broker
     
-  - name: CONFLUENT OVERLAY (BROKER) | enabling control center metrics for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | enabling control center metrics for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^metric.reporters='
       line: "metric.reporters={{ kafka.config.metric_reporters }}"
       insertafter: '^#metric.reporters='
@@ -195,20 +207,27 @@
       - groups['controlcenter'] | length > 0
     notify: restart broker
   
-  - name: CONFLUENT OVERLAY (BROKER) | installing cruise control metrics reporter
+  # these lines set the java path for kafka
+  - set_fact:
+      apache_lib_path: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/libs"
+  
+  - set_fact: 
+      java_lib_dir: "{{ (apache_kafka) | ternary(apache_lib_path, '/usr/share/java/kafka') }}"
+      
+  - name: KAFKA OVERLAY (BROKER) | installing cruise control metrics reporter to {{ java_lib_dir }}
     copy:
       src: "{{ key_path }}/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
-      dest: /usr/share/java/kafka
-      owner: root
-      group: root
+      dest: "{{ java_lib_dir }}"
+      owner: "{{ broker_user }}"
+      group: "{{ broker_group }}"
       mode: 0644
     when:
       - groups['cruisecontrol'] is defined
       - groups['cruisecontrol'] | length > 0
     
-  - name: CONFLUENT OVERLAY (BROKER) | enabling cruise control metrics for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | enabling cruise control metrics for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^metric.reporters='
       line: "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
       insertafter: '^#metric.reporters='
@@ -217,9 +236,9 @@
       - groups['cruisecontrol'] | length > 0
     notify: restart broker
     
-  - name: CONFLUENT OVERLAY (BROKER) | enabling and configuring control center metrics bootstrap servers for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | enabling and configuring control center metrics bootstrap servers for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^confluent.metrics.reporter.bootstrap.servers='
       line: "confluent.metrics.reporter.bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#confluent.metrics.reporter.bootstrap.servers='
@@ -228,9 +247,9 @@
       - groups['controlcenter'] | length > 0
     notify: restart broker
   
-  - name: CONFLUENT OVERLAY (BROKER) | enabling and configuring cruise control metrics bootstrap servers for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | enabling and configuring cruise control metrics bootstrap servers for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^cruise.control.metrics.reporter.bootstrap.servers='
       line: "cruise.control.metrics.reporter.bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#confluent.metrics.reporter.bootstrap.servers='
@@ -239,9 +258,9 @@
       - groups['cruisecontrol'] | length > 0
     notify: restart broker
     
-  - name: CONFLUENT OVERLAY (BROKER) | enabling and configuring control center metrics for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | enabling and configuring control center metrics for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^confluent.metrics.reporter.topic.replicas='
       line: "confluent.metrics.reporter.topic.replicas={{ kafka.config.confluent_metrics_reporter_topic_replicas }}"
       insertafter: '^#confluent.metrics.reporter.topic.replicas='
@@ -252,191 +271,225 @@
       - kafka.config.confluent_metrics_reporter_topic_replicas > 1
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | setting {{ kafka.service_name }} metrics reporting to {{ kafka.config.confluent_metrics }}
+  - name: KAFKA OVERLAY (BROKER) | setting {{ broker_service_name }} metrics reporting to {{ kafka.config.confluent_metrics }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^confluent.support.metrics.enable='
       line: "confluent.support.metrics.enable={{ kafka.config.confluent_metrics }}"
     notify: restart broker
     
-  - name: CONFLUENT OVERLAY (BROKER) | configuring group rebalance delay for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | configuring group rebalance delay for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^group.initial.rebalance.delay.ms='
       line: "group.initial.rebalance.delay.ms={{ kafka.config.group_initial_rebalance_delay_ms }}"
     when: not((kafka.config.group_initial_rebalance_delay_ms is undefined) or (kafka.config.group_initial_rebalance_delay_ms is none) or (kafka.config.group_initial_rebalance_delay_ms | trim == ''))  
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring background threads for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | configuring background threads for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^background.threads='
       line: "background.threads={{ kafka.config.background_threads }}"
     when: not((kafka.config.background_threads is undefined) or (kafka.config.background_threads is none) or (kafka.config.background_threads | trim == ''))  
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} number of threads that move replicas between log directories
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} number of threads that move replicas between log directories
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^num.replica.alter.log.dirs.threads='
       line: "num.replica.alter.log.dirs.threads={{ kafka.config.num_replica_alter_log_dirs_threads }}"
     when: not((kafka.config.num_replica_alter_log_dirs_threads is undefined) or (kafka.config.num_replica_alter_log_dirs_threads is none) or (kafka.config.num_replica_alter_log_dirs_threads | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring number of threads that move replicas between log directories for {{ kafka.service_name }} 
+  - name: KAFKA OVERLAY (BROKER) | configuring number of threads that move replicas between log directories for {{ broker_service_name }} 
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^num.replica.fetchers='
       line: "num.replica.fetchers={{ kafka.config.num_replica_fetchers }}"
     when: not((kafka.config.num_replica_fetchers is undefined) or (kafka.config.num_replica_fetchers is none) or (kafka.config.num_replica_fetchers | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring number of {{ kafka.service_name }} queued requests allowed before blocking network threads
+  - name: KAFKA OVERLAY (BROKER) | configuring number of {{ broker_service_name }} queued requests allowed before blocking network threads
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^queued.max.requests='
       line: "queued.max.requests={{ kafka.config.queued_max_requests }}"
     when: not((kafka.config.queued_max_requests is undefined) or (kafka.config.queued_max_requests is none) or (kafka.config.queued_max_requests | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring frequency with which the high watermark is saved out to disk for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | configuring frequency with which the high watermark is saved out to disk for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^replica.high.watermark.checkpoint.interval.ms='
       line: "replica.high.watermark.checkpoint.interval.ms={{ kafka.config.replica_high_watermark_checkpoint_interval_ms }}"
     when: not((kafka.config.replica_high_watermark_checkpoint_interval_ms is undefined) or (kafka.config.replica_high_watermark_checkpoint_interval_ms is none) or (kafka.config.replica_high_watermark_checkpoint_interval_ms | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring when the {{ kafka.service_name }} leader will remove the follower from isr
+  - name: KAFKA OVERLAY (BROKER) | configuring when the {{ broker_service_name }} leader will remove the follower from isr
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^replica.lag.time.max.ms='
       line: "replica.lag.time.max.ms={{ kafka.config.replica_lag_time_max_ms }}"
     when: not((kafka.config.replica_lag_time_max_ms is undefined) or (kafka.config.replica_lag_time_max_ms is none) or (kafka.config.replica_lag_time_max_ms | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring socket receive buffer for network requests for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | configuring socket receive buffer for network requests for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^replica.socket.receive.buffer.bytes='
       line: "replica.socket.receive.buffer.bytes={{ kafka.config.replica_socket_receive_buffer_bytes }}"
     when: not((kafka.config.replica_socket_receive_buffer_bytes is undefined) or (kafka.config.replica_socket_receive_buffer_bytes is none) or (kafka.config.replica_socket_receive_buffer_bytes | trim == ''))
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring socket timeout for network requests for {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | configuring socket timeout for network requests for {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^replica.socket.timeout.ms='
       line: "replica.socket.timeout.ms={{ kafka.config.replica_socket_timeout_ms }}"
     when: not((kafka.config.replica_socket_timeout_ms is undefined) or (kafka.config.replica_socket_timeout_ms is none) or (kafka.config.replica_socket_timeout_ms | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring maximum amount of time the {{ kafka.service_name }} client will wait for the request response
+  - name: KAFKA OVERLAY (BROKER) | configuring maximum amount of time the {{ broker_service_name }} client will wait for the request response
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^request.timeout.ms='
       line: "request.timeout.ms={{ kafka.config.request_timeout_ms }}"
     when: not((kafka.config.request_timeout_ms is undefined) or (kafka.config.request_timeout_ms is none) or (kafka.config.request_timeout_ms | trim == ''))
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring maximum allowed timeout for {{ kafka.service_name }} transactions
+  - name: KAFKA OVERLAY (BROKER) | configuring maximum allowed timeout for {{ broker_service_name }} transactions
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^transaction.max.timeout.ms='
       line: "transaction.max.timeout.ms={{ kafka.config.transaction_max_timeout_ms }}"
     when: not((kafka.config.transaction_max_timeout_ms is undefined) or (kafka.config.transaction_max_timeout_ms is none) or (kafka.config.transaction_max_timeout_ms | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | enabling {{ kafka.service_name }} replicas not in the isr set to be elected as leader
+  - name: KAFKA OVERLAY (BROKER) | enabling {{ broker_service_name }} replicas not in the isr set to be elected as leader
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^unclean.leader.election.enable='
       line: "unclean.leader.election.enable={{ kafka.config.unclean_leader_election_enable }}"
     when: not((kafka.config.unclean_leader_election_enable is undefined) or (kafka.config.unclean_leader_election_enable is none) or (kafka.config.unclean_leader_election_enable | trim == ''))
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring socket timeout for {{ kafka.service_name }} controller-to-broker channels
+  - name: KAFKA OVERLAY (BROKER) | configuring socket timeout for {{ broker_service_name }} controller-to-broker channels
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^controller.socket.timeout.ms='
       line: "controller.socket.timeout.ms={{ kafka.config.controller_socket_timeout_ms }}"
     when: not((kafka.config.controller_socket_timeout_ms is undefined) or (kafka.config.controller_socket_timeout_ms is none) or (kafka.config.controller_socket_timeout_ms | trim == ''))
     notify: restart broker
  
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} total memory used for log deduplication
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} total memory used for log deduplication
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.cleaner.dedupe.buffer.size='
       line: "log.cleaner.dedupe.buffer.size={{ kafka.config.log_cleaner_dedupe_buffer_size }}"
     when: not((kafka.config.log_cleaner_dedupe_buffer_size is undefined) or (kafka.config.log_cleaner_dedupe_buffer_size is none) or (kafka.config.log_cleaner_dedupe_buffer_size | trim == ''))
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring {{ kafka.service_name }} total memory used for log cleaner I/O buffers
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} total memory used for log cleaner I/O buffers
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.cleaner.io.buffer.size='
       line: "log.cleaner.io.buffer.size={{ kafka.config.log_cleaner_io_buffer_size }}"
     when: not((kafka.config.log_cleaner_io_buffer_size is undefined) or (kafka.config.log_cleaner_io_buffer_size is none) or (kafka.config.log_cleaner_io_buffer_size | trim == ''))
     notify: restart broker
 
-  - name: CONFLUENT OVERLAY (BROKER) | configuring number of {{ kafka.service_name }} background threads to use for log cleaning
+  - name: KAFKA OVERLAY (BROKER) | configuring number of {{ broker_service_name }} background threads to use for log cleaning
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.cleaner.threads='
       line: "log.cleaner.threads={{ kafka.config.log_cleaner_threads }}"
     when: not((kafka.config.log_cleaner_threads is undefined) or (kafka.config.log_cleaner_threads is none) or (kafka.config.log_cleaner_threads | trim == ''))
     notify: restart broker
   
   # # this seems to be required to avoid connector timestamp warnings
-  - name: CONFLUENT OVERLAY (BROKER) | configuring message timestamp of {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | configuring message timestamp of {{ broker_service_name }}
     lineinfile:
-      path: "{{ kafka.config_file }}"
+      path: "{{ broker_config_file }}"
       regexp: '^log.message.timestamp.type='
       line: "log.message.timestamp.type=LogAppendTime"
     notify: restart broker
- 
-  - name: CONFLUENT OVERLAY (BROKER) | ensuring {{ kafka.user_service }} exists
+     
+  - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka.user_service }} exists
     file:
       path: "{{ kafka.user_service }}"
       owner: root
       group: root
       state: directory
       mode: 0755
+  
+  - set_fact: 
+      broker_wrapper: "{{ (apache_kafka) | ternary('apache.kafka.j2', 'confluent.kafka.j2') }}"
       
-  - name: CONFLUENT OVERLAY (BROKER) | installing {{ kafka.service_name }} into {{ kafka.user_service }}
+  - name: KAFKA OVERLAY (BROKER) | installing {{ broker_service_name }} into {{ kafka.user_service }}
     template:
-      src: confluent.kafka.j2
-      dest: "{{ kafka.user_service }}/confluent-kafka"
+      src: "{{ broker_wrapper }}"
+      dest: "{{ kafka.user_service }}/broker"
       mode: 0755
-      owner: "{{ kafka.user }}"
-      group: "{{ kafka.group }}"
+      owner: "{{ broker_user }}"
+      group: "{{ broker_group }}"
       
   become: yes
   
 - block:
   
-  - name: CONFLUENT OVERLAY (BROKER) | creating systemd override directory
+  - block:
+    
+    - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka.environment.LOG_DIR }} exists
+      file:
+        path: "{{ kafka.environment.LOG_DIR }}"
+        owner: "{{ broker_user }}"
+        group: "{{ broker_group }}"
+        state: directory
+        mode: 0755
+        
+    - name: KAFKA OVERLAY (BROKER) | installing systemd {{ broker_service_name }} script
+      template:
+        src: apache-kafka.service.j2
+        dest: "/etc/systemd/system/{{ broker_service_name }}.service"
+        mode: 0640
+        owner: "{{ broker_user }}"
+        group: "{{ broker_group }}"
+      notify:
+        - reload systemd
+    
+    - name: KAFKA OVERLAY (BROKER) | enabling {{ broker_service_name }}
+      systemd:
+        name: "{{ broker_service_name }}.service"
+        enabled: yes
+    when:
+      - apache_kafka
+      - not confluent_kafka
+      
+  - set_fact: 
+      broker_override_name: "{{ (apache_kafka) | ternary(kafka.apache.systemd_override, kafka.confluent.systemd_override) }}"
+      
+  - name: KAFKA OVERLAY (BROKER) | creating systemd override directory {{ broker_override_name }}
     file:
-      path: "{{ kafka.systemd_override }}"
-      owner: "{{ kafka.user }}"
-      group: "{{ kafka.group }}"
+      path: "{{ broker_override_name }}"
+      owner: "{{ broker_user }}"
+      group: "{{ broker_group }}"
       state: directory
       mode: 0750
  
-  - name: CONFLUENT OVERLAY (BROKER) | installing {{ kafka.service_name }} environment overrride
+  - name: KAFKA OVERLAY (BROKER) | installing {{ broker_service_name }} environment overrride
     template:
       src: environment.j2
-      dest: "{{ kafka.systemd_override }}/override.conf"
+      dest: "{{ broker_override_name }}/override.conf"
       mode: 0640
-      owner: "{{ kafka.user }}"
-      group: "{{ kafka.group }}"
+      owner: "{{ broker_user }}"
+      group: "{{ broker_group }}"
     notify:
       - reload systemd
       - restart broker
       
-  - name: CONFLUENT OVERLAY (BROKER) | starting {{ kafka.service_name }}
+  - name: KAFKA OVERLAY (BROKER) | starting {{ broker_service_name }}
     systemd:
-      name: "{{ kafka.service_name }}"
+      name: "{{ broker_service_name }}"
       state: started
     
   become: yes

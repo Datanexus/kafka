@@ -1,21 +1,22 @@
 # configuration variables for kafka broker services
-cruisecontrol:
-  version: '2.0.36'
-zookeeper:
-  config:
-    # this needs to be quoted as a string for concatenation purposes
-    # if this gets changed it needs to be changed under zookeeper defaults
-    port: '2181'
 kafka:
-  user: cp-kafka
-  group: confluent
-  config_file: /etc/kafka/server.properties
-  systemd_override: /etc/systemd/system/confluent-kafka.service.d
+  apache:
+    user: kafka
+    group: kafka
+    config_file: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/server.properties"
+    service_name: apache-kafka
+    systemd_override: /etc/systemd/system/apache-kafka.service.d
+  confluent:
+    user: cp-kafka
+    group: confluent
+    config_file: /etc/kafka/server.properties
+    systemd_override: /etc/systemd/system/confluent-kafka.service.d
+    service_name: confluent-kafka 
   user_service: /usr/local/bin
-  service_name: confluent-kafka
   environment:
     KAFKA_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g -Xms{{ jvm_heap_mem }}g"
     KAFKA_JVM_PERFORMANCE_OPTS: "-XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
+    LOG_DIR: /var/log/kafka
     # this does not seem to work to eliminate the subject alternative name error
     # KAFKA_OPTS: "-Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"
     # uncomment the following line to turn on JMX on port 10101

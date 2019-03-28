@@ -2,5 +2,7 @@
 #
 # tasks that occur post-appplication installation
 ---
+# this isn't strictly necessary for cruise control, but the kafka broker default variables need JVM settings
+- import_tasks: tune.yml
 # install helper utilities
 - import_tasks: utilities.yml

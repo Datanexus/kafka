@@ -5,7 +5,6 @@
 - name: CONFLUENT OVERLAY (ZOOKEEPER TUNING) | jvm heap size is...{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),('automatic')) }}
   set_fact:
     jvm_heap_mem="{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int)) }}"    
-
 - name: CONFLUENT OVERLAY (ZOOKEEPER TUNING) | validating {{ jvm_heap_mem }}gb needed <= {{ ((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int) }}gb total
   assert:
     that:

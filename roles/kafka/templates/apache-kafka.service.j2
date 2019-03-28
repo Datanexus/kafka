@@ -1,0 +1,14 @@
+[Unit]
+Description=Apache Kafka
+Documentation=https://kafka.apache.org
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}
+User={{ broker_user }}
+Group={{ broker_group }}
+ExecStart={{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/kafka-server-start.sh {{ broker_config_file }}
+
+[Install]
+WantedBy=multi-user.target

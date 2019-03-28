@@ -17,4 +17,4 @@ else
 	exit 1
 fi
 
-/usr/bin/kafka-topics --zookeeper $ZOOKEEPER_HOSTS --list
+{{ utils_path }}/kafka-topics{{ bin_suffix }} --zookeeper $ZOOKEEPER_HOSTS --list
