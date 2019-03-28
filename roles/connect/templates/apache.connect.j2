@@ -11,7 +11,7 @@ if [ "$1" = "start" ] ; then
   {% for key, value in connect.distributed.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/connect-distributed {{ connect_config_file }} >> {{ connect.distributed.environment.LOG_DIR }}/connect.log 2>&1 &
+  /usr/bin/nohup {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/connect-distributed.sh {{ connect_config_file }} >> {{ connect.distributed.environment.LOG_DIR }}/connect.log 2>&1 &
 elif [ "$1" = "stop" ] ; then
   SIGNAL=${SIGNAL:-TERM}
   PIDS=$(ps ax | grep -i 'kafka\.connect' | grep java | grep -v grep | awk '{print $1}')

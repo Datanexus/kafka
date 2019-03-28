@@ -10,7 +10,7 @@
     lineinfile:
       path: "{{ control.center.config_file }}"
       regexp: '^bootstrap.servers='
-      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafkabroker.config.broker_port + ',') }}:{{ kafkabroker.config.broker_port }}"
+      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#bootstrap.servers='
     notify: restart controlcenter
     
@@ -57,7 +57,7 @@
     lineinfile:
       path: "{{ control.center.config_file }}"
       regexp: '^confluent.controlcenter.connect.cluster='
-      line: "confluent.controlcenter.connect.cluster=http://{{ groups['kafka_connect_public'] | join(':' + connect.distributed.config.listener_port + ',http://') }}:{{ connect.distributed.config.listener_port }}"
+      line: "confluent.controlcenter.connect.cluster=http://{{ groups['kafka_connect_public'] | join(':' + connect.distributed.config.rest_port + ',http://') }}:{{ connect.distributed.config.rest_port }}"
       insertafter: '^#confluent.controlcenter.connect.cluster='
     when:
       - groups['kafka_connect_public'] is defined

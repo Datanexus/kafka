@@ -4,6 +4,8 @@ packages:
   epel_version: '7-11'
   java_version: '1.8.0'
   confluent_version: '5.1'
+  # kafka_version isn't used under confluent, here mainly to match apache
+  kafka_version: '2.1'
   scala_version: '2.11'
 confluent_os_releasever: '7'
 confluent_public_key: "https://packages.confluent.io/rpm/{{ packages.confluent_version }}/archive.key"

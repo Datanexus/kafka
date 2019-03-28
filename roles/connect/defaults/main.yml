@@ -1,16 +1,24 @@
 # configuration variables for kafka distributed connector services
 connect:
   distributed:
-    config_file: /etc/kafka/connect-distributed.properties
-    service_name: confluent-kafka-connect
-    systemd_override: /etc/systemd/system/confluent-kafka-connect.service.d
+    apache:
+      config_file: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/connect-distributed.properties"
+      service_name: apache-kafka-connect
+      systemd_override: /etc/systemd/system/apache-kafka-connect.service.d
+      user: kafka
+      group: kafka
+    confluent:
+      config_file: /etc/kafka/connect-distributed.properties
+      service_name: confluent-kafka-connect
+      systemd_override: /etc/systemd/system/confluent-kafka-connect.service.d
+      user: cp-kafka-connect
+      group: confluent
     user_service: /usr/local/bin
-    user: cp-kafka-connect
-    group: confluent
     environment:
       KAFKA_HEAP_OPTS: "-Xms256M -Xmx{{ jvm_heap_mem }}g"
+      LOG_DIR: /var/log/kafka
     config:
-      rest_port: 8083
+      rest_port: '8083'
       consumer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
       producer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
       ssl.endpoint.identification.algorithm: ""
@@ -28,7 +36,3 @@ connect:
       offset_storage_topic: connect-offsets
       status_storage_replication_factor: 3
       status_storage_topic: connect-status
-broker:
-   config:
-     # if this gets changed it needs to be changed under kafka defaults
-     broker_port: '9092'

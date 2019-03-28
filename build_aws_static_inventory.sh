@@ -23,7 +23,7 @@ export TEE=/usr/bin/tee
 export CAT=/bin/cat
 
 # each application should be its own system
-applications="cruisecontrol shaw zookeeper kafka_broker controlcenter registry kafka_connect rest_proxy kafka_ksql kafka_replicator elasticsearch"
+applications="shaw zookeeper kafka_broker cruisecontrol controlcenter registry kafka_connect rest_proxy kafka_ksql kafka_replicator elasticsearch"
 # roles are application vms with dual purpose, eg controlcenter runs on a kafka node
 roles="replicator"
 

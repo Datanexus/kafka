@@ -14,7 +14,7 @@ ksql:
     # JMX_PORT: 10101
   config:
     application.id: ksql-server
-    listener_port: 8088
+    listener_port: '8088'
     logs: /var/log/confluent/ksql
     # referenced in /etc/ksql/log4j-file.properties
     cli_logs: /usr/logs/ksql-cli
@@ -22,11 +22,3 @@ ksql:
     streams: /var/lib/kafka-streams
     ssl.endpoint.identification.algorithm: ""
     confluent_metrics: False
-kafka:
-   config:
-     # if this gets changed it needs to be changed under kafka defaults
-     broker_port: '9092'
-
-
-
-

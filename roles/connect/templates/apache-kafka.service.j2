@@ -1,0 +1,14 @@
+[Unit]
+Description=Apache Kafka Connect
+Documentation=https://kafka.apache.org
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}
+User={{ connect_user }}
+Group={{ connect_user }}
+ExecStart={{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/connect-distributed.sh {{ connect_config_file }}
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,51 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+#
+---
+# CentOS / Redhat 7
+- block:
+  
+  - import_tasks: install-java.yml
+  
+  - name: KAFKA OVERLAY | adding {{ apache.group }} group
+    group:
+      name: "{{ apache.group }}"
+      
+  - name: KAFKA OVERLAY | adding {{ apache.user }} user
+    user:
+      name: "{{ apache.user }}"
+      group: "{{ apache.group }}"
+      
+  become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
+- name: KAFKA OVERLAY | checking for {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/{{ apache.config_file }}
+  stat: path="{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/{{ apache.config_file }}"
+  register: existing_package
+
+- block:
+
+  - name: KAFKA OVERLAY | fetching apache kafka v{{ application_version | default(packages.kafka_version) }}
+    get_url:
+      url: "http://www.gtlib.gatech.edu/pub/apache/kafka/{{ packages.kafka_version }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}.tgz"
+      dest: "/tmp/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}.tgz"
+      mode: 0640
+  
+  - name: KAFKA OVERLAY | installing kafka {{ application_version | default(packages.kafka_version) }}
+    unarchive:
+      src: "/tmp/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}.tgz"
+      dest: "{{ apache.install_dir }}"
+      owner: "{{ apache.user }}"
+      group: "{{ apache.group }}"
+      remote_src: yes
+  
+  - name: KAFKA OVERLAY | ensuring kafka configuration directory exists
+    file:
+      path: /usr/local/bin
+      state: directory
+      mode: 0755
+      owner: root
+      group: root
+
+  become: yes
+  when: not existing_package.stat.exists

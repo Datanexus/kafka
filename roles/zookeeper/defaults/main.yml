@@ -1,10 +1,17 @@
 # configuration variables for zookeeper services
 zookeeper:
-  user: cp-kafka
-  group: confluent
-  config_file: /etc/kafka/zookeeper.properties
-  service_name: confluent-zookeeper
-  systemd_override: /etc/systemd/system/confluent-zookeeper.service.d
+  apache:
+    user: kafka
+    group: kafka
+    service_name: apache-zookeeper
+    systemd_override: /etc/systemd/system/apache-zookeeper.service.d
+    config_file: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/zookeeper.properties"
+  confluent:
+    user: cp-kafka
+    group: confluent
+    service_name: confluent-zookeeper
+    systemd_override: /etc/systemd/system/confluent-zookeeper.service.d
+    config_file: /etc/kafka/zookeeper.properties
   user_service: /usr/local/bin
   config:
     maxClientCnxns: 0
@@ -19,3 +26,4 @@ zookeeper:
     port: '2181'
   environment:
     KAFKA_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g -Xms{{ jvm_heap_mem }}g"
+    LOG_DIR: /var/log/kafka

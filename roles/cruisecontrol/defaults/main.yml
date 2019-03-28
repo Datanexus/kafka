@@ -7,22 +7,10 @@ cruisecontrol:
   ui_config_file: /usr/local/src/cruise-control/cruise-control-ui/dist/static/config.csv
   service_name: cruise-control
   user_service: /usr/local/bin
-  user: "{{ ansible_user }}"
-  group: "{{ ansible_user }}"
-  environment:
+  # environment:
   config:
     port: '9090'
     log: /var/log/linkedin/cruise-control
-# defaults for various packages
-packages:
-  epel_version: '7-11'
-  java_version: '1.8.0'
-  gradle_version: '5.2.1'
-zookeeper:
-  config:
-    # this needs to be quoted as a string for concatenation purposes
-    # if this gets changed it needs to be changed under zookeeper defaults
-    port: '2181'
-kafka:
-  config:
-    broker_port: '9092'
+  packages:
+    gradle_version: '5.2.1'
+  

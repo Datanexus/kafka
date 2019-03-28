@@ -9,7 +9,7 @@
 - name: restart broker
   listen: "restart broker"
   systemd:
-    name: "{{ kafka.service_name }}"
+    name: "{{ broker_service_name }}"
     state: restarted
   become: true
 
