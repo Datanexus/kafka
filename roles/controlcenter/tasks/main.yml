@@ -3,6 +3,8 @@
 # configure confluent controlcenter
 ---
 - import_tasks: tune.yml
+# this is a application specific preflight run after the platform preflight
+- import_tasks: preflight.yml
 
 - block:
   
@@ -70,7 +72,9 @@
       regexp: '^confluent.controlcenter.ksql.url='
       line: "confluent.controlcenter.ksql.url=http://{{ groups['kafka_ksql_public'] | join(':' + ksql.config.listener_port + ',http://') }}:{{ ksql.config.listener_port }}"
       insertafter: '^#confluent.controlcenter.ksql.url='
-    when: groups['kafka_ksql'] | length > 0
+    when: 
+      - groups['kafka_ksql'] is defined
+      - groups['kafka_ksql'] | length > 0
     notify: restart controlcenter
   
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring schema registry hosts
@@ -79,7 +83,9 @@
       regexp: '^confluent.controlcenter.schema.registry.url='
       line: "confluent.controlcenter.schema.registry.url=http://{{ groups['registry'] | join(':' + schema.registry.config.schema_registry_listener_port + ',http://') }}:{{ schema.registry.config.schema_registry_listener_port }}"
       insertafter: '^#confluent.controlcenter.schema.registry.url='
-    when: groups['registry'] | length > 0
+    when:
+      -  groups['registry'] is defined
+      -  groups['registry'] | length > 0
     notify: restart controlcenter
   
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | ensuring {{ control.center.user_service }} exists

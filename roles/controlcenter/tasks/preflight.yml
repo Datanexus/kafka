@@ -1,0 +1,42 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+# confluent control center preflight
+---
+- block:
+  
+  - set_fact:
+      dn_soft_nofile: "{{ limits.soft.config.nofile }}"
+    when: limits.soft.config.nofile
+  
+  - set_fact:
+      dn_soft_nofile: "{{ control.center.linux.limits.soft.config.nofile }}"
+    when:
+      - dn_soft_nofile is undefined
+      - control.center.linux.limits.soft.config.nofile
+    
+  - name: CONFLUENT OVERLAY (CONTROL CENTER SHELL LIMITS) | configuring max number of open files (soft)
+    lineinfile:
+      path: "{{ control.center.linux.limits.config_file }}"
+      regexp: '^\* soft nofile'
+      line: "* soft nofile {{ dn_soft_nofile }}"
+    when: dn_soft_nofile is defined
+  
+  - set_fact:
+      dn_hard_nofile: "{{ limits.hard.config.nofile }}"
+    when: limits.hard.config.nofile
+  
+  - set_fact:
+      dn_hard_nofile: "{{ control.center.linux.limits.hard.config.nofile }}"
+    when:
+      - dn_hard_nofile is undefined
+      - control.center.linux.limits.hard.config.nofile
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER SHELL LIMITS) | configuring max number of open files (hard)
+    lineinfile:
+      path: "{{ control.center.linux.limits.config_file }}"
+      regexp: '^\* hard nofile'
+      line: "* hard nofile {{ dn_hard_nofile }}"
+    when: dn_hard_nofile is defined
+
+  become: yes
+  

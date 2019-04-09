@@ -3,15 +3,15 @@
 #
 ---  
 # this calculates the available memory minus 768MB for the OS (rounded down) for the JVM
-- name: CONFLUENT OVERLAY (CONTROL CENTER TUNING) | jvm heap size is...{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),('automatic')) }}
+- name: CONFLUENT OVERLAY (KSQL) | jvm heap size is...{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),('automatic')) }}
   set_fact:
     heap_req="{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),(((ansible_memtotal_mb | int - 768) / 1024) | round(0,'floor') | int)) }}"
 
 # control center heap max is either what's available or 6gb minimum in production
-- name: CONFLUENT OVERLAY (CONTROL CENTER TUNING) | setting jvm heap to {{ ((heap_req | int) > 6) | ternary((heap_req),(6)) }}g
+- name: CONFLUENT OVERLAY (KSQL) | setting jvm heap to {{ ((heap_req | int) > 6) | ternary((heap_req),(6)) }}g
   set_fact: jvm_heap_mem="{{ ((heap_req | int) > 6) | ternary((heap_req),(6)) }}"
 
-- name: CONFLUENT OVERLAY (CONTROL CENTER TUNING) | validating {{ jvm_heap_mem }}gb needed <= {{ ((ansible_memtotal_mb | int / 1048) | round(0,'floor') | int) }}gb total
+- name: CONFLUENT OVERLAY (KSQL) | validating {{ jvm_heap_mem }}gb needed <= {{ ((ansible_memtotal_mb | int / 1048) | round(0,'floor') | int) }}gb total
   assert:
     that:
       - (jvm_heap_mem | int) <= ((ansible_memtotal_mb | int / 1048) | round(0,'floor') | int) 

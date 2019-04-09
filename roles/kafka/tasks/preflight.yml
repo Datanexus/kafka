@@ -1,0 +1,42 @@
+# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+#
+# kafka broker preflight
+---
+- block:
+    
+  - set_fact:
+      dn_soft_nofile: "{{ limits.soft.config.nofile }}"
+    when: limits.soft.config.nofile
+  
+  - set_fact:
+      dn_soft_nofile: "{{ kafka.linux.limits.soft.config.nofile }}"
+    when:
+      - dn_slow_start is undefined
+      - kafka.linux.limits.soft.config.nofile
+    
+  - name: KAFKA OVERLAY (SHELL LIMITS) | configuring max number of open files (soft)
+    lineinfile:
+      path: "{{ kafka.linux.limits.config_file }}"
+      regexp: '^\* soft nofile'
+      line: "* soft nofile {{  dn_soft_nofile }}"
+    when: dn_soft_nofile is defined
+  
+  - set_fact:
+      dn_hard_nofile: "{{ limits.hard.config.nofile }}"
+    when: limits.hard.config.nofile
+  
+  - set_fact:
+      dn_hard_nofile: "{{ kafka.linux.limits.hard.config.nofile }}"
+    when:
+      - dn_hard_nofile is undefined
+      - kafka.linux.limits.hard.config.nofile
+      
+  - name: KAFKA OVERLAY (SHELL LIMITS) | configuring max number of open files (hard)
+    lineinfile:
+      path: "{{ kafka.linux.limits.config_file }}"
+      regexp: '^\* hard nofile'
+      line: "* hard nofile {{ dn_hard_nofile }}"
+    when: dn_hard_nofile is defined
+  
+  become: yes
+  

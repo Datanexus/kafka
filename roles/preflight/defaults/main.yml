@@ -6,7 +6,7 @@ linux:
       config:
         fsize: unlimited
         # default 1024; control center requires higher
-        nofile: 16384
+        nofile:
         nproc:
         core:
         stack:
@@ -14,7 +14,7 @@ linux:
       config:
         fsize:
         # default 4096; control center requires higher
-        nofile: 16384
+        nofile:
         nproc:
         core:
         stack:
