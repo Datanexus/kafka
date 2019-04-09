@@ -4,34 +4,74 @@
 ---
 - block:
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring percentage of available memory that contains free and reclaimable pages
+  - set_fact:
+      dn_dirty_ratio: "{{ vm.config.dirty_ratio }}"
+    when: vm.config.dirty_ratio
+  
+  - set_fact:
+      dn_dirty_ratio: "{{ linux.vm.config.dirty_ratio }}"
+    when:
+      - dn_dirty_ratio is undefined
+      - linux.vm.config.dirty_ratio
+    
+  - name: KAFKA OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring percentage of available memory that contains free and reclaimable pages
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_ratio
-      value: "{{ vm.config.dirty_ratio | default(linux.vm.config.dirty_ratio) }}"
-    when: not((vm.config.dirty_ratio is undefined) or (vm.config.dirty_ratio is none) or (vm.config.dirty_ratio | trim == '')) or not((linux.vm.config.dirty_ratio is undefined) or (linux.vm.config.dirty_ratio is none) or (linux.vm.config.dirty_ratio | trim == ''))
+      value: "{{ dn_dirty_ratio }}"
+    when: dn_dirty_ratio is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring percentage of available memory that contains free and reclaimable pages
+  - set_fact:
+      dn_background_ratio: "{{ vm.config.dirty_background_ratio }}"
+    when: vm.config.dirty_background_ratio
+  
+  - set_fact:
+      dn_background_ratio: "{{ linux.vm.config.dirty_background_ratio }}"
+    when:
+      - dn_background_ratio is undefined
+      - linux.vm.config.dirty_background_ratio
+      
+  - name: KAFKA OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring percentage of available memory that contains free and reclaimable pages
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_background_ratio
-      value: "{{ vm.config.dirty_background_ratio | default(linux.vm.config.dirty_background_ratio) }}"
-    when: not((vm.config.dirty_background_ratio is undefined) or (vm.config.dirty_background_ratio is none) or (vm.config.dirty_background_ratio | trim == '')) or not((linux.vm.config.dirty_background_ratio is undefined) or (linux.vm.config.dirty_background_ratio is none) or (linux.vm.config.dirty_background_ratio | trim == ''))
+      value: "{{ dn_background_ratio }}"
+    when: dn_background_ratio is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how often the pdflush/flush/kdmflush processes wake up 
+  - set_fact:
+      dn_dirty_writeback: "{{ vm.config.dirty_writeback_centisecs }}"
+    when: vm.config.dirty_writeback_centisecs
+  
+  - set_fact:
+      dn_dirty_writeback: "{{ linux.vm.config.dirty_writeback_centisecs }}"
+    when:
+      - dn_dirty_writeback is undefined
+      - linux.vm.config.dirty_writeback_centisecs
+      
+  - name: KAFKA OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how often the pdflush/flush/kdmflush processes wake up 
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_writeback_centisecs
-      value: "{{ vm.config.dirty_writeback_centisecs | default(linux.vm.config.dirty_writeback_centisecs) }}"
-    when: not((vm.config.dirty_writeback_centisecs is undefined) or (vm.config.dirty_writeback_centisecs is none) or (vm.config.dirty_writeback_centisecs | trim == '')) or not((linux.vm.config.dirty_writeback_centisecs is undefined) or (linux.vm.config.dirty_writeback_centisecs is none) or (linux.vm.config.dirty_writeback_centisecs | trim == ''))
+      value: "{{ dn_dirty_writeback }}"
+    when: dn_dirty_writeback is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how long something can be in cache before it needs to be written
+  - set_fact:
+      dn_dirty_expire: "{{ vm.config.dirty_expire_centisecs }}"
+    when: vm.config.dirty_expire_centisecs
+  
+  - set_fact:
+      dn_dirty_expire: "{{ linux.vm.config.dirty_expire_centisecs }}"
+    when:
+      - dn_dirty_expire is undefined
+      - linux.vm.config.dirty_expire_centisecs
+      
+  - name: KAFKA OVERLAY (PREFLIGHT VIRTUAL MEMORY) | configuring how long something can be in cache before it needs to be written
     sysctl:
       sysctl_file: "{{ linux.vm.config_file }}"
       name: vm.dirty_expire_centisecs
-      value: "{{ vm.config.dirty_expire_centisecs | default(linux.vm.config.dirty_expire_centisecs) }}"
-    when: not((vm.config.dirty_expire_centisecs is undefined) or (vm.config.dirty_expire_centisecs is none) or (vm.config.dirty_expire_centisecs | trim == '')) or not((linux.vm.config.dirty_expire_centisecs is undefined) or (linux.vm.config.dirty_expire_centisecs is none) or (linux.vm.config.dirty_expire_centisecs | trim == ''))
-    
+      value: "{{ dn_dirty_expire }}"
+    when: dn_dirty_expire is defined
+      
   become: yes
   when:
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

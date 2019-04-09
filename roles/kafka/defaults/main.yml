@@ -1,5 +1,14 @@
 # configuration variables for kafka broker services
 kafka:
+  linux:
+    limits:
+      config_file: /etc/security/limits.conf
+      soft:
+        config:
+          nofile: 32768
+      hard:
+        config:
+          nofile: 32768
   apache:
     user: kafka
     group: kafka

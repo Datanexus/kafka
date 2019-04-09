@@ -4,68 +4,158 @@
 ---
 - block:
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring maximum number of file handles
+  - set_fact:
+      dn_file_max: "{{ kernel.config.fs_file_max }}"
+    when: kernel.config.fs_file_max
+  
+  - set_fact:
+      dn_file_max: "{{ linux.kernel.config.fs_file_max }}"
+    when:
+      - dn_file_max is undefined
+      - linux.kernel.config.fs_file_max
+    
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring maximum number of file handles
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: fs.file-max
-      value: "{{ kernel.config.fs_file_max | default(linux.kernel.config.fs_file_max) }}"      
-    when: not((kernel.config.fs_file_max is undefined) or (kernel.config.fs_file_max is none) or (kernel.config.fs_file_max | trim == '')) or not((linux.kernel.config.fs_file_max is undefined) or (linux.kernel.config.fs_file_max is none) or (linux.kernel.config.fs_file_max | trim == ''))
-    
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring core dump pattern
+      value: "{{ dn_file_max }}"      
+    when: dn_file_max is defined
+  
+  - set_fact:
+      dn_core_pattern: "{{ kernel.config.core_pattern }}"
+    when: kernel.config.core_pattern
+  
+  - set_fact:
+      dn_core_pattern: "{{ linux.kernel.config.core_pattern }}"
+    when:
+      - dn_core_pattern is undefined
+      - linux.kernel.config.core_pattern
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring core dump pattern
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.core_pattern
-      value: "{{ kernel.config.core_pattern | default(linux.kernel.config.core_pattern) }}"
-    when: not((kernel.config.core_pattern is undefined) or (kernel.config.core_pattern is none) or (kernel.config.core_pattern | trim == '')) or not((linux.kernel.config.core_pattern is undefined) or (linux.kernel.config.core_pattern is none) or (linux.kernel.config.core_pattern | trim == ''))
+      value: "{{ dn_core_pattern }}"
+    when: dn_core_pattern is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring maximum number of message queue identifiers
+  - set_fact:
+      dn_msgmni: "{{ kernel.config.msgmni }}"
+    when: kernel.config.msgmni
+  
+  - set_fact:
+      dn_msgmni: "{{ linux.kernel.config.msgmni }}"
+    when:
+      - dn_msgmni is undefined
+      - linux.kernel.config.msgmni
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring maximum number of message queue identifiers
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.msgmni
-      value: "{{ kernel.config.msgmni | default(linux.kernel.config.msgmni) }}"
-    when: not((kernel.config.msgmni is undefined) or (kernel.config.msgmni is none) or (kernel.config.msgmni | trim == '')) or not((linux.kernel.config.msgmni is undefined) or (linux.kernel.config.msgmni is none) or (linux.kernel.config.msgmni | trim == ''))
+      value: "{{ dn_msgmni }}"
+    when: dn_msgmni is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring maximum pid value
+  - set_fact:
+      dn_pid_max: "{{ kernel.config.pid_max }}"
+    when: kernel.config.pid_max
+  
+  - set_fact:
+      dn_pid_max: "{{ linux.kernel.config.pid_max }}"
+    when:
+      - dn_pid_max is undefined
+      - linux.kernel.config.pid_max
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring maximum pid value
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.pid_max
-      value: "{{ kernel.config.pid_max | default(linux.kernel.config.pid_max) }}"
-    when: not((kernel.config.pid_max is undefined) or (kernel.config.pid_max is none) or (kernel.config.pid_max | trim == '')) or not((linux.kernel.config.pid_max is undefined) or (linux.kernel.config.pid_max is none) or (linux.kernel.config.pid_max | trim == ''))
+      value: "{{ dn_pid_max }}"
+    when: dn_pid_max is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring semaphore parameters
+  - set_fact:
+      dn_sem: "{{ kernel.config.sem }}"
+    when: kernel.config.sem
+  
+  - set_fact:
+      dn_sem: "{{ linux.kernel.config.sem }}"
+    when:
+      - dn_sem is undefined
+      - linux.kernel.config.sem
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring semaphore parameters
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.sem
-      value: "{{ kernel.config.sem | default(linux.kernel.config.sem) }}"
-    when: not((kernel.config.sem is undefined) or (kernel.config.sem is none) or (kernel.config.sem | trim == '')) or not((linux.kernel.config.sem is undefined) or (linux.kernel.config.sem is none) or (linux.kernel.config.sem | trim == ''))
+      value: "{{ dn_sem }}"
+    when: dn_sem is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring system wide maximum shared memory pages
+  - set_fact:
+      dn_shmall: "{{ kernel.config.shmall }}"
+    when: kernel.config.shmall
+  
+  - set_fact:
+      dn_shmall: "{{ linux.kernel.config.shmall }}"
+    when:
+      - dn_shmall is undefined
+      - linux.kernel.config.shmall
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring system wide maximum shared memory pages
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.shmall
-      value: "{{ kernel.config.shmall | default(linux.kernel.config.shmall) }}"
-    when: not((kernel.config.shall is undefined) or (kernel.config.shall is none) or (kernel.config.shall | trim == '')) or not((linux.kernel.config.shall is undefined) or (linux.kernel.config.shall is none) or (linux.kernel.config.shall | trim == ''))
+      value: "{{ dn_shmall }}"
+    when: dn_shmall is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring system wide maximum shared memory segments
+  - set_fact:
+      dn_shmmni: "{{ kernel.config.shmmni }}"
+    when: kernel.config.shmmni
+  
+  - set_fact:
+      dn_shmmni: "{{ linux.kernel.config.shmmni }}"
+    when:
+      - dn_shmmni is undefined
+      - linux.kernel.config.shmmni
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring system wide maximum shared memory segments
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.shmmni
-      value: "{{ kernel.config.shmmni | default(linux.kernel.config.shmmni) }}"
-    when: not((kernel.config.shmmni is undefined) or (kernel.config.shmmni is none) or (kernel.config.shmmni | trim == '')) or not((linux.kernel.config.shmmni is undefined) or (linux.kernel.config.shmmni is none) or (linux.kernel.config.shmmni | trim == ''))
+      value: "{{ dn_shmmni }}"
+    when: dn_shmmni is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring how often TCP sends out keepalive messages
+  - set_fact:
+      dn_keepalive_time: "{{ kernel.config.tcp_keepalive_time }}"
+    when: kernel.config.tcp_keepalive_time
+  
+  - set_fact:
+      dn_keepalive_time: "{{ linux.kernel.config.tcp_keepalive_time }}"
+    when:
+      - dn_keepalive_time is undefined
+      - linux.kernel.config.tcp_keepalive_time
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring how often TCP sends out keepalive messages
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.net.ipv4.tcp_keepalive_time
-      value: "{{ kernel.config.tcp_keepalive_time | default(linux.kernel.config.tcp_keepalive_time) }}"
-    when: not((kernel.config.tcp_keepalive_time is undefined) or (kernel.config.tcp_keepalive_time is none) or (kernel.config.tcp_keepalive_time | trim == '')) or not((linux.kernel.config.tcp_keepalive_time is undefined) or (linux.kernel.config.tcp_keepalive_time is none) or (linux.kernel.config.tcp_keepalive_time | trim == ''))
+      value: "{{ dn_keepalive_time }}"
+    when: dn_keepalive_time is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT KERNEL) | configuring RFC286 behavior and time out the congestion window
+  - set_fact:
+      dn_slow_start: "{{ kernel.config.tcp_slow_start_after_idle }}"
+    when: kernel.config.tcp_slow_start_after_idle
+  
+  - set_fact:
+      dn_slow_start: "{{ linux.kernel.config.tcp_slow_start_after_idle }}"
+    when:
+      - dn_slow_start is undefined
+      - linux.kernel.config.tcp_slow_start_after_idle
+      
+  - name: KAFKA OVERLAY (PREFLIGHT KERNEL) | configuring RFC286 behavior and time out the congestion window
     sysctl:
       sysctl_file: "{{ linux.kernel.config_file }}"
       name: kernel.net.ipv4.tcp_slow_start_after_idle
-      value: "{{ kernel.config.tcp_slow_start_after_idle | default(linux.kernel.config.tcp_slow_start_after_idle) }}"
-    when: not((kernel.config.tcp_slow_start_after_idle is undefined) or (kernel.config.tcp_slow_start_after_idle is none) or (kernel.config.tcp_slow_start_after_idle | trim == '')) or not((linux.kernel.config.tcp_slow_start_after_idle is undefined) or (linux.kernel.config.tcp_slow_start_after_idle is none) or (linux.kernel.config.tcp_slow_start_after_idle | trim == ''))
+      value: "{{ dn_slow_start }}"
+    when: dn_slow_start is defined
   
   become: yes
   when:

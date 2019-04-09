@@ -17,7 +17,7 @@ application=confluent         # application overlay to deploy
 
 # if check is passed in as the last argument run the drift code
 for i in "$@" ; do 
-  [[ $i == "drift" ]] && ./provision-kafka --check --diff --inventory=$1 --tags "$application" -e "tenant_config_path=${2} project=$3 cloud=$4 region=$5 domain=$6 cluster=$7 tenant=${tenant} application=${application} key_path=${8}" | ./check && exit ;
+  [[ $i == "drift" ]] && ./provision-kafka --check --diff --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=$3 cloud=$4 region=$5 domain=$6 cluster=$7 tenant=${tenant} application=${application} key_path=${8}" | ./check && exit ;
   [[ $i == "replication" ]] && ./provision-replication --inventory=$1 --tags "$application" -e "tenant=$2 project=$3 cloud=$4 region=$5 domain=$6 cluster=$7" && exit ;
 done
 

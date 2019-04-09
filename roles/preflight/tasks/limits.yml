@@ -3,76 +3,176 @@
 # OS tasks to set shell limits - these take effect at each shell login
 ---
 - block:
+    
+  - set_fact:
+      dn_soft_fsize: "{{ limits.soft.config.fsize }}"
+    when: limits.soft.config.fsize
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring maximum filesize (soft)
+  - set_fact:
+      dn_soft_fsize: "{{ linux.limits.soft.config.fsize }}"
+    when:
+      - dn_soft_fsize is undefined
+      - linux.limits.soft.config.fsize
+  
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring maximum filesize (soft)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* soft fsize'
-      line: "* soft fsize {{ limits.soft.fsize | default(linux.limits.soft.config.fsize) }}"
-    when: not((limits.soft.config.fsize is undefined) or (limits.soft.config.fsize is none) or (limits.soft.config.fsize | trim == '')) or not((linux.limits.soft.config.fsize is undefined) or (linux.limits.soft.config.fsize is none) or (linux.limits.soft.config.fsize | trim == ''))
+      line: "* soft fsize {{ dn_soft_fsize }}"
+    when: dn_soft_fsize is defined
+  
+  - set_fact:
+      dn_hard_fsize: "{{ limits.hard.config.fsize }}"
+    when: limits.hard.config.fsize
+  
+  - set_fact:
+      dn_hard_fsize: "{{ linux.limits.hard.config.fsize }}"
+    when:
+      - dn_hard_fsize is undefined
+      - linux.limits.hard.config.fsize
       
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring maximum filesize (hard)
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring maximum filesize (hard)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* hard fsize'
-      line: "* hard fsize {{ limits.hard.fsize | default(linux.limits.hard.config.fsize) }}"
-    when: not((limits.hard.config.fsize is undefined) or (limits.hard.config.fsize is none) or (limits.hard.config.fsize | trim == '')) or not((linux.limits.hard.config.fsize is undefined) or (linux.limits.hard.config.fsize is none) or (linux.limits.hard.config.fsize | trim == ''))
+      line: "* hard fsize {{ dn_hard_fsize }}"
+    when: dn_hard_fsize is defined
+
+  - set_fact:
+      dn_soft_nofile: "{{ limits.soft.config.nofile }}"
+    when: limits.soft.config.nofile
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of open files (soft)
+  - set_fact:
+      dn_soft_nofile: "{{ linux.limits.soft.config.nofile }}"
+    when:
+      - dn_soft_nofile is undefined
+      - linux.limits.soft.config.nofile
+  
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring max number of open files (soft)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* soft nofile'
-      line: "* soft nofile {{ limits.soft.nofile | default(linux.limits.soft.config.nofile) }}"
-    when: not((limits.soft.config.nofile is undefined) or (limits.soft.config.nofile is none) or (limits.soft.config.nofile | trim == '')) or not((linux.limits.soft.config.nofile is undefined) or (linux.limits.soft.config.nofile is none) or (linux.limits.soft.config.nofile | trim == ''))
+      line: "* soft nofile {{ dn_soft_nofile }}"
+    when: dn_soft_nofile is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of open files (hard)
+  - set_fact:
+      dn_hard_nofile: "{{ limits.hard.config.nofile }}"
+    when: limits.hard.config.nofile
+  
+  - set_fact:
+      dn_hard_nofile: "{{ linux.limits.hard.config.nofile }}"
+    when:
+      - dn_hard_nofile is undefined
+      - linux.limits.hard.config.nofile
+      
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring max number of open files (hard)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* hard nofile'
-      line: "* hard nofile {{ limits.hard.nofile | default(linux.limits.hard.config.nofile) }}"
-    when: not((limits.hard.config.nofile is undefined) or (limits.hard.config.nofile is none) or (limits.hard.config.nofile | trim == '')) or not((linux.limits.hard.config.nofile is undefined) or (linux.limits.hard.config.nofile is none) or (linux.limits.hard.config.nofile | trim == ''))
+      line: "* hard nofile {{ dn_hard_nofile }}"
+    when: dn_hard_nofile is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of processes (soft)
+  - set_fact:
+      dn_soft_nproc: "{{ limits.soft.config.nproc }}"
+    when: limits.soft.config.nproc
+  
+  - set_fact:
+      dn_soft_nproc: "{{ linux.limits.soft.config.nproc }}"
+    when:
+      - dn_soft_nproc is undefined
+      - linux.limits.soft.config.nproc
+  
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring max number of processes (soft)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* soft nproc'
-      line: "* soft nproc {{ limits.soft.nproc | default(linux.limits.soft.config.nproc) }}"
-    when: not((limits.soft.config.nproc is undefined) or (limits.soft.config.nproc is none) or (limits.soft.config.nproc | trim == '')) or not((linux.limits.soft.config.nproc is undefined) or (linux.limits.soft.config.nproc is none) or (linux.limits.soft.config.nproc | trim == ''))
+      line: "* soft nproc {{ dn_soft_nproc }}"
+    when: dn_soft_nproc is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring max number of processes (hard)
+  - set_fact:
+      dn_hard_nproc: "{{ limits.hard.config.nproc }}"
+    when: limits.hard.config.nproc
+  
+  - set_fact:
+      dn_hard_nproc: "{{ linux.limits.hard.config.nproc }}"
+    when:
+      - dn_hard_nproc is undefined
+      - linux.limits.hard.config.nproc
+      
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring max number of processes (hard)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* hard nproc'
-      line: "* hard nproc {{ limits.hard.nproc | default(linux.limits.hard.config.nproc) }}"
-    when: not((limits.hard.config.nproc is undefined) or (limits.hard.config.nproc is none) or (limits.hard.config.nproc | trim == '')) or not((linux.limits.hard.config.nproc is undefined) or (linux.limits.hard.config.nproc is none) or (linux.limits.hard.config.nproc | trim == ''))
+      line: "* hard nproc {{ dn_hard_nproc }}"
+    when: dn_hard_nproc is defined
 
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the core file size limit (soft)
+  - set_fact:
+      dn_soft_core: "{{ limits.soft.config.core }}"
+    when: limits.soft.config.core
+  
+  - set_fact:
+      dn_soft_core: "{{ linux.limits.soft.config.core }}"
+    when:
+      - dn_soft_core is undefined
+      - linux.limits.soft.config.core
+      
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring the core file size limit (soft)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* soft core'
-      line: "* soft core {{ limits.soft.core | default(linux.limits.soft.config.core) }}"
-    when: not((limits.soft.config.core is undefined) or (limits.soft.config.core is none) or (limits.soft.config.core | trim == '')) or not((linux.limits.soft.config.core is undefined) or (linux.limits.soft.config.core is none) or (linux.limits.soft.config.core | trim == ''))
+      line: "* soft core {{ dn_soft_core }}"
+    when: dn_soft_core is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the core file size limit (hard)
+  - set_fact:
+      dn_hard_core: "{{ limits.hard.config.core }}"
+    when: limits.hard.config.core
+  
+  - set_fact:
+      dn_hard_core: "{{ linux.limits.hard.config.core }}"
+    when:
+      - dn_hard_core is undefined
+      - linux.limits.hard.config.core
+      
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring the core file size limit (hard)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* hard core'
-      line: "* hard core {{ limits.hard.core | default(linux.limits.hard.config.core) }}"
-    when: not((limits.hard.config.core is undefined) or (limits.hard.config.core is none) or (limits.hard.config.core | trim == '')) or not((linux.limits.hard.config.core is undefined) or (linux.limits.hard.config.core is none) or (linux.limits.hard.config.core | trim == ''))
+      line: "* hard core {{ dn_hard_core }}"
+    when: dn_hard_core is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the max stack size (soft)
+  - set_fact:
+      dn_soft_stack: "{{ limits.soft.config.stack }}"
+    when: limits.soft.config.stack
+  
+  - set_fact:
+      dn_soft_stack: "{{ linux.limits.soft.config.stack }}"
+    when:
+      - dn_soft_stack is undefined
+      - linux.limits.soft.config.stack
+      
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring the max stack size (soft)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* soft stack'
-      line: "* soft stack {{ limits.soft.stack | default(linux.limits.soft.config.stack) }}"
-    when: not((limits.soft.config.stack is undefined) or (limits.soft.config.stack is none) or (limits.soft.config.stack | trim == '')) or not((linux.limits.soft.config.stack is undefined) or (linux.limits.soft.config.stack is none) or (linux.limits.soft.config.stack | trim == ''))
+      line: "* soft stack {{ dn_soft_stack }}"
+    when: dn_soft_stack is defined
   
-  - name: CONFLUENT OVERLAY (PREFLIGHT LIMITS) | configuring the max stack size (hard)
+  - set_fact:
+      dn_hard_stack: "{{ limits.hard.config.stack }}"
+    when: limits.hard.config.stack
+  
+  - set_fact:
+      dn_hard_stack: "{{ linux.limits.hard.config.stack }}"
+    when:
+      - dn_hard_stack is undefined
+      - linux.limits.hard.config.stack
+      
+  - name: KAFKA OVERLAY (PREFLIGHT LIMITS) | configuring the max stack size (hard)
     lineinfile:
       path: "{{ linux.limits.config_file }}"
       regexp: '^\* hard stack'
-      line: "* hard stack {{ limits.hard.stack | default(linux.limits.hard.config.stack) }}"
-    when: not((limits.hard.config.stack is undefined) or (limits.hard.config.stack is none) or (limits.hard.config.stack | trim == '')) or not((linux.limits.hard.config.stack is undefined) or (linux.limits.hard.config.stack is none) or (linux.limits.hard.config.stack | trim == ''))
+      line: "* hard stack {{ dn_hard_stack }}"
+    when: dn_hard_stack is defined
 
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

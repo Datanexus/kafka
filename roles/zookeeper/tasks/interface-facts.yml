@@ -1,11 +1,30 @@
 # (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
 #
 # automatically set facts based on interfaces present
----    
-- name: setting eth0 to all interfaces
+---
+# this should handle eth or ens prefix with a single or dual interface machine -- is this clever or dangerous
+- set_fact:
+    # set private and public to the same interface by default
+    private_internal_interface: "{{ hostvars[inventory_hostname].ansible_default_ipv4.alias }}"
+    public_internal_interface: "{{ hostvars[inventory_hostname].ansible_default_ipv4.alias }}"
+  when:
+    - hostvars[inventory_hostname].ansible_default_ipv4 is defined
+
+# this is purely to handle single interface machines; define a new possible nic
+- set_fact:
+    possible_private_internal_interface: "{{ hostvars[inventory_hostname].ansible_default_ipv4.alias[:3] }}{{ hostvars[inventory_hostname].ansible_default_ipv4.alias[-1] | int - 1 }}"
+
+# if the possible nic exists then we adopt it   
+- set_fact:
+    # dual NIC machines have default to public internal
+    private_internal_interface: "{{ hostvars[inventory_hostname].ansible_default_ipv4.alias[:3] }}{{ hostvars[inventory_hostname].ansible_default_ipv4.alias[-1] | int - 1 }}"
+  when:
+    - hostvars[inventory_hostname]['ansible_' + possible_private_internal_interface]['ipv4']['address'] is defined
+
+- name: KAFKA OVERLAY (ZOOKEEPER) | setting {{ private_internal_interface }} to all interfaces
   set_fact:
-    zookeeper_interface: "{{ hostvars[inventory_hostname].ansible_eth0.device }}"
-    zookeeper_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}"
-    zookeeper_broadcast_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.broadcast }}"
-    zookeeper_metrics_interface_ipv4: "{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}"
-  when: hostvars[inventory_hostname].ansible_eth0 is defined
+    zookeeper_interface: "{{ hostvars[inventory_hostname]['ansible_' + private_internal_interface]['device'] }}"
+    zookeeper_interface_ipv4: "{{ hostvars[inventory_hostname]['ansible_' + private_internal_interface]['ipv4']['address'] }}"
+    zookeeper_broadcast_interface_ipv4: "{{ hostvars[inventory_hostname]['ansible_' + private_internal_interface]['ipv4']['broadcast'] }}"
+    zookeeper_metrics_interface_ipv4: "{{ hostvars[inventory_hostname]['ansible_' + private_internal_interface]['ipv4']['address'] }}"
+  when: hostvars[inventory_hostname]['ansible_' + private_internal_interface]['ipv4']['address'] is defined

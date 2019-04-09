@@ -62,7 +62,6 @@
     - confluent
   vars_files:
     - "{{ tenant_config_path }}/config/os/linux.yml"
-    - "{{ tenant_config_path }}/config/applications/confluent.yml"
   vars:
       # this is semi clever; application gets set based on each host group
       application: "{{ group_names | first }}"
@@ -146,8 +145,9 @@
   hosts: localhost
   gather_facts: no
   tasks:
+    # assumption that the public internal interface is the default
     - name: KAFKA OVERLAY | building kafka public internal host group
-      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_public
+      add_host: hostname="{{ hostvars[item].ansible_default_ipv4.address }}" groupname=kafka_public
       with_items: "{{ groups['kafka_broker'] }}"
       when: "'kafka_broker' in groups | default([])"
 
@@ -162,6 +162,7 @@
     - "{{ tenant_config_path }}/config/applications/apache.yml"
     - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/kafka.yml"
+    - "{{ tenant_config_path }}/config/os/linux.yml"
   tasks:
     - import_role:
         name: kafka
@@ -184,8 +185,9 @@
   hosts: localhost
   gather_facts: no
   tasks:
+    # assumption that the public internal interface is the default
     - name: KAFKA OVERLAY | building kafka ksql public internal host group
-      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_ksql_public
+      add_host: hostname="{{ hostvars[item].ansible_default_ipv4.address }}" groupname=kafka_ksql_public
       with_items: "{{ groups['kafka_ksql'] }}"
       when: "'kafka_ksql' in groups | default([])"
 
@@ -195,8 +197,9 @@
   hosts: localhost
   gather_facts: no
   tasks:
+    # assumption that the public internal interface is the default
     - name: KAFKA OVERLAY | retrieving data network ip address
-      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_connect_public
+      add_host: hostname="{{ hostvars[item].ansible_default_ipv4.address }}" groupname=kafka_connect_public
       with_items: "{{ groups['kafka_connect'] }}"
       when: "'kafka_connect' in groups | default([])"
 
@@ -232,6 +235,7 @@
     - roles/ksql/defaults/main.yml
     - roles/registry/defaults/main.yml
     - "{{ tenant_config_path }}/config/applications/controlcenter.yml"
+    - "{{ tenant_config_path }}/config/os/linux.yml"
   gather_facts: yes
   tasks:
     - import_role:

@@ -4,6 +4,9 @@
 ---
 - import_tasks: tune.yml
 
+# this is a application specific preflight run after the platform preflight
+- import_tasks: preflight.yml
+
 - import_tasks: interface-facts.yml
 
 - set_fact: 
@@ -17,7 +20,7 @@
 
 - set_fact: 
     broker_config_file: "{{ (apache_kafka) | ternary(kafka.apache.config_file, kafka.confluent.config_file) }}"
-      
+
 - block:
 
   - name: KAFKA OVERLAY (BROKER) | enabling topic deletion for {{ broker_service_name }}

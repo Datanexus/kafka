@@ -2,15 +2,15 @@
 #
 #
 ---
-- name: CONFLUENT OVERLAY (BROKER TUNING) | jvm heap size is...{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),('automatic')) }}
+- name: KAFKA OVERLAY (BROKER TUNING) | jvm heap size is...{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),('automatic')) }}
   set_fact:
     heap_req="{{ ((jvm_heap | default('auto')) | int != 0) | ternary ((jvm_heap),((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int)) }}"    
 
 # this calculates half the total memory (rounded down) for the JVM; for kafka brokers this should max out at 5g
-- name: CONFLUENT OVERLAY (BROKER TUNING) | setting jvm heap to {{ ((heap_req | int) <= 5) | ternary((heap_req),(5)) }}g
+- name: KAFKA OVERLAY (BROKER TUNING) | setting jvm heap to {{ ((heap_req | int) <= 5) | ternary((heap_req),(5)) }}g
   set_fact: jvm_heap_mem="{{ ((heap_req | int) <= 5) | ternary((heap_req),(5)) }}"
 
-- name: CONFLUENT OVERLAY (BROKER TUNING) | validating {{ jvm_heap_mem }}gb needed <= {{ ((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int) }}gb total
+- name: KAFKA OVERLAY (BROKER TUNING) | validating {{ jvm_heap_mem }}gb needed <= {{ ((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int) }}gb total
   assert:
     that:
       - (jvm_heap_mem | int) <= ((ansible_memtotal_mb | int / 2048) | round(0,'floor') | int) 
