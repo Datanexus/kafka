@@ -1,17 +1,32 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 #
 ---
 - set_fact:
     confluent_platform_version: "{{ confluent_distribution }}-{{ application_version | default(packages.scala_version) }}"
-        
+
+# rpm_key needs a python > 2.7.9 to install keys
+- name: CONFLUENT OVERLAY | using first python interpreter in path
+  raw: 'which python'
+  register: python_interpreter
+
+- name: CONFLUENT OVERLAY | updating ansible python in subsequent tasks
+  set_fact:
+    ansible_python_interpreter: '{{ python_interpreter.stdout }}'
+    
 - name: CONFLUENT OVERLAY | installing confluent platform public key
   rpm_key:
     state: present
     key: "{{ confluent_public_key }}"
   become: yes
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 
-# CentOS / Redhat 7
+# reset the interpreter back to ansible default for package installation
+- name: CONFLUENT OVERLAY | defaulting to system python
+  set_fact:
+    ansible_python_interpreter: /usr/bin/python
+    
 - block:
   
   - import_tasks: install-java.yml

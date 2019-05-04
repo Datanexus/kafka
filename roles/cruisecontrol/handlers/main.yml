@@ -1,13 +1,32 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # handlers used during confluent platform installation
 ---
 - name: reload systemd
   command: systemctl daemon-reload
   become: yes
-  
-- name: restart cruisecontrol
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '>=')
+    
+- name: systemd cruisecontrol
+  listen: "restart cruisecontrol"
   systemd:
     name: "{{ cruisecontrol.service_name }}"
     state: restarted
   become: yes
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '>=')
+
+- name: sysvinit cruisecontrol
+  listen: "restart cruisecontrol"
+  command: "./{{ cruisecontrol.service_name}} restart"
+  become: yes
+  args:
+    chdir: "{{ cruisecontrol.user_service  }}"
+  become_user: "{{ cruisecontrol_user }}"
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '<')

@@ -1,13 +1,31 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # handlers used during confluent platform installation
 ---
 - name: reload systemd
   command: systemctl daemon-reload
-  become: true
+  become: yes
+  when:
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '>=')
   
-- name: restart controlcenter
+- name: systemd controlcenter
+  listen: "restart controlcenter"
   systemd:
     name: "{{ control.center.service_name }}"
     state: restarted
-  become: true
+  become: yes
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '>=')
+      
+- name: sysvinit controlcenter
+  listen: "restart controlcenter"
+  sysvinit:
+    name: "{{ control.center.service_name }}"
+    state: restarted
+  become: yes
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '<')

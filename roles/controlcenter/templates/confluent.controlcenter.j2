@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env sh
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tconfluent-control-center [-h]\\thelp\\n"
@@ -6,21 +8,29 @@ if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	exit 0
 fi
 
+DATE=`which date`
+
 if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log
+	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
   {% for key, value in control.center.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> /var/log/confluent/control-center/control-center.log 2>&1 &
+  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> {{ control.center.config.logDir }}/control-center.log 2>&1 &
 elif [ "$1" = "stop" ] ; then
-	printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log
-	/usr/bin/control-center-stop
+  pid=`/usr/bin/jcmd | grep 'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1`
+  if [[ ${pid} ]] && [[ -n "$(ps -p ${pid} -o pid=)" ]]; then
+      printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
+     /usr/bin/kill $pid
+  fi  
 elif [ "$1" = "restart" ] ; then
-	printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log  
-	/usr/bin/control-center-stop
-	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/confluent/control-center/control-center.log
+  pid=`/usr/bin/jcmd | grep  'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1`
+  if [[ ${pid} ]] && [[ -n "$(ps -p ${pid} -o pid=)" ]]; then
+      printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
+     /usr/bin/kill $pid
+  fi
+	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
   {% for key, value in control.center.environment.items() -%}
   {{ " " ~ key  }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> /var/log/confluent/control-center/control-center.log 2>&1 &
+  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> {{ control.center.config.logDir }}/control-center.log 2>&1 &
 fi

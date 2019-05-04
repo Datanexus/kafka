@@ -1,5 +1,6 @@
-#!/bin/sh
-# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
+#!/usr/bin/env sh
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 
 if [ "$1" = "-h" ] ; then
   printf "Usage:  consume-topic [-h]\\thelp\\n"
@@ -14,7 +15,7 @@ elif [ $# -eq 1 ]; then
 fi
 
 # we want to verify the topic exists before we consume it
-{{ postflight.utilsDir }}/list-topics | /usr/bin/grep $1 &> /dev/null
+{{ postflight.utilsDir }}/list-topics | grep $1 &> /dev/null
  if [ $? == 0 ]; then
    {{ utils_path }}/kafka-console-consumer{{ bin_suffix }} --bootstrap-server $BROKER_HOSTS --topic $1 --from-beginning
  else

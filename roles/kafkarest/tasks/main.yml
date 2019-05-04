@@ -1,4 +1,5 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 #
 --- 
@@ -22,7 +23,7 @@
       insertafter: '^#schema.registry.url='
     when: groups['registry'] | length > 0
     notify: restart kafkarest
-    
+  
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring zookeeper hosts
     lineinfile:
       path: "{{ kafkarest.config_file }}"
@@ -30,12 +31,13 @@
       line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
       insertafter: '^#zookeeper.connect='
     notify: restart kafkarest
-    
+  
+  # cap number of brokers in config at 5
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring kafka brokers
     lineinfile:
       path: "{{ kafkarest.config_file }}"
       regexp: '^bootstrap.servers='
-      line: "bootstrap.servers=PLAINTEXT://{{ groups['kafka_public'] | join(':' + kafkabroker.config.broker_port + ',PLAINTEXT://') }}:{{ kafkabroker.config.broker_port }}"
+      line: "bootstrap.servers=PLAINTEXT://{{ groups['kafka_public'][:5] | join(':' + kafkabroker.config.broker_port + ',PLAINTEXT://') }}:{{ kafkabroker.config.broker_port }}"
     notify: restart kafkarest
   
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring {{ kafkarest.service_name }} listener
@@ -82,6 +84,8 @@
       group: "{{ kafkarest.group }}"
       state: directory
       mode: 0750
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
  
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | installing {{ kafkarest.service_name }} environment overrride
     template:
@@ -93,12 +97,34 @@
     notify:
       - reload systemd
       - restart kafkarest
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
       
-  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | starting {{ kafkarest.service_name }}
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | enabling {{ kafkarest.service_name }} by systemd
     systemd:
       name: "{{ kafkarest.service_name }}"
-      state: started
-        
+      enabled: yes
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | installing sysvinit {{ kafkarest.service_name }} script
+    template:
+      src: confluent.sysvinit.j2
+      dest: "/etc/init.d/{{ kafkarest.service_name }}"
+      mode: 0755
+      owner: root
+      group: root
+    when: 
+      - ansible_distribution_version is version_compare('7', '<')
+      
+  # the restart handler should take care of starting the service
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | enabling {{ kafkarest.service_name }} by sysvinit
+    sysvinit:
+      name: "{{ kafkarest.service_name }}"
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '<')
+      
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   

@@ -1,17 +1,75 @@
-# (c) Copyright 2019 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # install needed packages
 ---
 # CentOS / Redhat 7
 - block:
   
+  # reset the interpreter back to ansible default for package installation
+  - name: CRUISE CONTROL OVERLAY | defaulting to system python
+    set_fact:
+      ansible_python_interpreter: /usr/bin/python
+      
   - name: CRUISE CONTROL OVERLAY | installing prerequisite packages
     package:
       name: "{{ item }}"
       state: present
     with_items:
       - unzip
+  
+  - block:
+          
+      - name: CRUISE CONTROL OVERLAY | installing prerequisite git compliation packages
+        package:
+          name: "{{ item }}"
+          state: present
+        with_items:
+          - libcurl-devel
+          
+      - name: CRUISE CONTROL OVERLAY | downloading git tarball
+        get_url: 
+          url: "https://mirrors.edge.kernel.org/pub/software/scm/git/git-{{ os_packages.git_version }}.tar.gz"
+          dest: /tmp
+    
+      - name: CRUISE CONTROL OVERLAY | unarchiving git v{{ os_packages.git_version }}
+        unarchive:
+          src: "/tmp/git-{{ os_packages.git_version }}.tar.gz"
+          dest: /tmp
+          owner: "{{ ansible_user }}"
+          group: "{{ ansible_user }}"
+          remote_src: yes
+      
+      - name: CRUISE CONTROL OVERLAY | configuring git v{{ os_packages.git_version }} 
+        command: './configure'
+        args:
+          chdir: "/tmp/git-{{ os_packages.git_version }}"
+      
+      - name: CRUISE CONTROL OVERLAY | compiling and installing git v{{ os_packages.git_version }} (this may take some time)
+        command: 'make install'
+        args:
+          chdir: "/tmp/git-{{ os_packages.git_version }}"
+      
+      - name: CRUISE CONTROL OVERLAY | updating executable paths to include {{ cruisecontrol.user_service }}
+        template:
+          src: git.sh.j2
+          dest: /etc/profile.d/git.sh
+          mode: 0644
+          owner: root
+          group: root
+                        
+    when:
+      - ansible_distribution == 'RedHat'
+      - ansible_distribution_version is version_compare('7', '<')
+       
+  - name: CRUISE CONTROL OVERLAY | installing git
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
       - git
-   
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+      
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

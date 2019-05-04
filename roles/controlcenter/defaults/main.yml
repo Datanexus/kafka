@@ -1,3 +1,6 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+
 # configuration variables for confluent control center services
 control:
   center:
@@ -19,6 +22,7 @@ control:
     environment:
       CONTROL_CENTER_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g"
     config:
+      logDir: /var/log/confluent/control-center
       confluent.controlcenter.streams.num.stream.threads: 8
       confluent_controlcenter_data_dir: /var/lib/confluent/control-center
       confluent_license: /etc/confluent-control-center/license

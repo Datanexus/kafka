@@ -1,0 +1,51 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+#
+# ensure minimum python version
+---
+- block:
+    
+    # compiling python compliant ansible requires zlib-devel, openssl-devel
+    - name: KAFKA OVERLAY (preflight python) | ensuring gcc package is present
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - gcc
+        - zlib-devel
+        - openssl-devel
+        - bzip2-devel
+
+    - name: KAFKA OVERLAY (preflight python) | checking for /usr/local/bin/python previous version
+      stat: path=/usr/local/bin/python
+      register: existing_package
+      
+    - block:
+      
+      - name: KAFKA OVERLAY (preflight python) | fetching python v{{ packages.python_version }}
+        get_url:
+          url: "https://www.python.org/ftp/python/{{ packages.python_version }}/Python-{{ packages.python_version }}.tgz"
+          dest: "/tmp/Python-{{ packages.python_version }}.tgz"
+          mode: 0640
+    
+      - name: KAFKA OVERLAY (preflight python) | unarchiving python v{{ packages.python_version }}
+        unarchive:
+          src: "/tmp/Python-{{ packages.python_version }}.tgz"
+          dest: /tmp
+          owner: "{{ ansible_user }}"
+          group: "{{ ansible_user }}"
+          remote_src: yes
+    
+      - name: KAFKA OVERLAY (preflight python) | configuring python v{{ packages.python_version }} 
+        command: './configure --enable-optimizations'
+        args:
+          chdir: "/tmp/Python-{{ packages.python_version }}"
+    
+      - name: KAFKA OVERLAY (preflight python) | compiling and installing python v{{ packages.python_version }} (this may take some time)
+        command: 'make install'
+        args:
+          chdir: "/tmp/Python-{{ packages.python_version }}"
+      
+      when: not existing_package.stat.exists
+      
+  become: yes
+  

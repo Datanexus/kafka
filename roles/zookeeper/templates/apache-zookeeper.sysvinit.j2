@@ -1,0 +1,57 @@
+#!/bin/bash
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
+# chkconfig: 35 90 12
+# description: zookeeper
+#
+
+# pidfile: /var/run/{{ zookeeper_service_name }}.pid
+
+# source function library
+. /etc/init.d/functions
+
+PID_FILE=/var/run/{{ zookeeper_service_name }}.pid
+
+start() {
+  if [ -x `which logger` ]; then
+    logger -s -t {{ zookeeper_service_name }} 'starting service...'
+  fi
+  {% for key, value in zookeeper.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  daemon --pidfile ${PID_FILE} --user {{ zookeeper_user }} {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/zookeeper-server-start.sh {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log 2>&1 &
+  sleep 3
+  /usr/bin/jcmd | grep 'org.apache.zookeeper.server.quorum.QuorumPeerMain {{ zookeeper_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+}
+
+stop() {
+  if [[ -s "${PID_FILE}" ]]; then
+    if [ -x `which logger` ]; then
+      logger -s -t {{ zookeeper_service_name }} 'stopping service...'
+    fi
+  killproc -p ${PID_FILE}
+  sleep 3
+  fi
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p ${PID_FILE} java
+    ;;
+  restart|reload|condrestart)
+    stop
+    start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|reload|status}"
+    exit 1
+esac
+
+exit $?

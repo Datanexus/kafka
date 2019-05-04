@@ -1,4 +1,5 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # routines for provisioning registry services
 ---
@@ -30,7 +31,15 @@
       group: root
       state: directory
       mode: 0755
-      
+  
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | ensuring {{ schema.registry.config.log_dir }} exists
+    file:
+      path: "{{ schema.registry.config.log_dir }}"
+      owner: "{{ schema.registry.user }}"
+      group: "{{ schema.registry.group }}"
+      state: directory
+      mode: 0755
+  
   - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | installing {{ schema.registry.service_name }} into {{ schema.registry.user_service }}
     template:
       src: confluent.registry.j2
@@ -61,12 +70,33 @@
     notify:
       - reload systemd
       - restart registry
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
       
-  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | starting {{ schema.registry.service_name }}
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | enabling {{ schema.registry.service_name }} by systemd
     systemd:
       name: "{{ schema.registry.service_name }}"
-      state: started
-        
+      enabled: yes
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | installing sysvinit {{ schema.registry.service_name }} script
+    template:
+      src: confluent.sysvinit.j2
+      dest: "/etc/init.d/{{ schema.registry.service_name }}"
+      mode: 0755
+      owner: root
+      group: root
+    when: 
+      - ansible_distribution_version is version_compare('7', '<')
+      
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | enabling {{ schema.registry.service_name }} by sysvinit
+    sysvinit:
+      name: "{{ schema.registry.service_name }}"
+      enabled: yes
+    when: 
+      - ansible_distribution_version is version_compare('7', '<')
+      
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   

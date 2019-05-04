@@ -1,5 +1,6 @@
 #!/usr/bin/env ansible-playbook
-# (c) 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # main routine for provisioning kafka
 ---   
@@ -130,7 +131,7 @@
   tasks:
     - import_role:
         name: zookeeper
-
+      
 # this is necessary before we build host groups from the ansible server
 - name: KAFKA OVERLAY | discovering kafka broker facts
   tags:
@@ -166,7 +167,7 @@
   tasks:
     - import_role:
         name: kafka
-            
+      
 - name: KAFKA OVERLAY | configuring confluent schema registry
   hosts: registry
   tags:
@@ -178,7 +179,7 @@
   tasks:
     - import_role:
         name: registry
-
+    
 - name: KAFKA OVERLAY | building kafka ksql public internal host group
   tags:
     - confluent
@@ -255,7 +256,7 @@
   tasks:
     - import_role:
         name: connect
-
+    
 - name: KAFKA OVERLAY | configuring confluent kafka ReST proxy
   hosts: rest_proxy
   tags:
@@ -279,7 +280,7 @@
   tasks:
     - import_role:
         name: ksql
-
+    
 - name: KAFKA OVERLAY | completing postflight actions
   hosts: zookeeper:kafka_broker:registry:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
   tags:
