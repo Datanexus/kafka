@@ -1,13 +1,17 @@
-#!/bin/sh
+#!/usr/bin/env sh
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tkafka-connect [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ connect_user }} {{ connect.distributed.user_service }}/kafka-connect [ start | stop ]\\n"
+	printf "Usage:\\tsudo -H -u {{ connect_user }} {{ connect.distributed.user_service }}/kafka-connect [ start | stop | restart]\\n"
 	exit 0
 fi
 
+DATE=`which date`
+
 if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ connect_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ connect.distributed.environment.LOG_DIR }}/connect.log
+	printf "[%s %s] INFO Starting {{ connect_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ connect.distributed.environment.LOG_DIR }}/connect.log
   {% for key, value in connect.distributed.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
@@ -17,10 +21,25 @@ elif [ "$1" = "stop" ] ; then
   PIDS=$(ps ax | grep -i 'kafka\.connect' | grep java | grep -v grep | awk '{print $1}')
 
   if [ -z "$PIDS" ]; then
-    echo "No kafka connect service to stop"
+    printf "No kafka connect service to stop"
     exit 1
   else
-    printf "[%s %s] INFO Stopping {{ connect_service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ connect.distributed.environment.LOG_DIR }}/connect.log
+    printf "[%s %s] INFO Stopping {{ connect_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ connect.distributed.environment.LOG_DIR }}/connect.log
     kill -s $SIGNAL $PIDS
   fi
+elif [ "$1" = "restart" ] ; then
+  SIGNAL=${SIGNAL:-TERM}
+  PIDS=$(ps ax | grep -i 'kafka\.connect' | grep java | grep -v grep | awk '{print $1}')
+
+  if [ -z "$PIDS" ]; then
+    printf "No kafka connect service to stop"
+  else
+    printf "[%s %s] INFO Stopping {{ connect_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ connect.distributed.environment.LOG_DIR }}/connect.log
+    kill -s $SIGNAL $PIDS
+  fi
+	printf "[%s %s] INFO Starting {{ connect_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ connect.distributed.environment.LOG_DIR }}/connect.log
+  {% for key, value in connect.distributed.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  /usr/bin/nohup {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/connect-distributed.sh {{ connect_config_file }} >> {{ connect.distributed.environment.LOG_DIR }}/connect.log 2>&1 &
 fi

@@ -1,4 +1,5 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # main zookeeper configuration routines
 ---
@@ -131,7 +132,7 @@
       mode: 0755
       owner: "{{ zookeeper_user }}"
       group: "{{ zookeeper_group }}"
-      
+    
   become: yes
   
 - block:
@@ -155,11 +156,18 @@
         group: "{{ zookeeper_group }}"
       notify:
         - reload systemd
+      when: 
+        - ansible_distribution_version is version_compare('7', '>=')
     
-    - name: KAFKA OVERLAY (ZOOKEEPER) | enabling {{ zookeeper_service_name }}
-      systemd:
-        name: "{{ zookeeper_service_name }}.service"
-        enabled: yes
+    - name: KAFKA OVERLAY (BROKER) | installing sysvinit {{ zookeeper_service_name }} script
+      template:
+        src: apache-zookeeper.sysvinit.j2
+        dest: "/etc/init.d/{{ zookeeper_service_name }}"
+        mode: 0755
+        owner: root
+        group: root
+      when: 
+        - ansible_distribution_version is version_compare('7', '<')
         
     when:
       - apache_kafka
@@ -167,7 +175,7 @@
   
   - set_fact: 
       zookeeper_override_name: "{{ (apache_kafka) | ternary(zookeeper.apache.systemd_override, zookeeper.confluent.systemd_override) }}"
-      
+    
   - name: KAFKA OVERLAY (ZOOKEEPER) | creating systemd override directory {{ zookeeper_override_name }}
     file:
       path: "{{ zookeeper_override_name }}"
@@ -175,7 +183,9 @@
       group: "{{ zookeeper_group }}"
       state: directory
       mode: 0750
-  
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+      
   - name: KAFKA OVERLAY (ZOOKEEPER) | installing {{ zookeeper_service_name }} environment override
     template:
       src: environment.j2
@@ -186,11 +196,33 @@
     notify:
       - reload systemd
       - restart zookeeper
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
   
-  - name: KAFKA OVERLAY (ZOOKEEPER) | starting {{ zookeeper_service_name }}
+  - name: KAFKA OVERLAY (ZOOKEEPER) | enabling {{ zookeeper_service_name }} by systemd
     systemd:
       name: "{{ zookeeper_service_name }}"
-      state: started
-    
+      enabled: yes
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  - name: KAFKA OVERLAY (ZOOKEEPER) | installing sysvinit {{ zookeeper_service_name }} script
+    template:
+      src: confluent.sysvinit.j2
+      dest: "/etc/init.d/{{ zookeeper_service_name }}"
+      mode: 0755
+      owner: root
+      group: root
+    when: 
+      - ansible_distribution_version is version_compare('7', '<')
+      
+  # the restart handler should take care of starting the service
+  - name: KAFKA OVERLAY (ZOOKEEPER) | enabling {{ zookeeper_service_name }} by sysvinit
+    sysvinit:
+      name: "{{ zookeeper_service_name }}"
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '<')
+      
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

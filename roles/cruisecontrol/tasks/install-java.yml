@@ -1,18 +1,27 @@
-# (c) Copyright 2019 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # install java
 ---
 - block:
   
-  - name: CRUISE CONTROL OVERLAY | installing java {{ packages.java_version }} packages
+  # this is unnecessary on RHEL 6
+  - name: CRUISE CONTROL OVERLAY | installing epel package
     package:
       name: "{{ item }}"
       state: present
     with_items:
       - "epel-release-{{ packages.epel_version }}"
+    when: ansible_distribution == 'CentOS'
+    
+  - name: CRUISE CONTROL OVERLAY | installing java {{ packages.java_version }} packages
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
       - "java-{{ packages.java_version }}-openjdk"
       - "java-{{ packages.java_version }}-openjdk-devel"
-
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 

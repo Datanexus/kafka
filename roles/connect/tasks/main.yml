@@ -1,4 +1,5 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 #
 ---
@@ -20,11 +21,12 @@
     
 - block:
   
+  # cap number of brokers in config at 5
   - name: KAFKA OVERLAY (CONNECT) | configuring bootstrap servers for {{ connect_service_name }}
     lineinfile:
       path: "{{ connect_config_file }}"
       regexp: '^bootstrap.servers='
-      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      line: "bootstrap.servers={{ groups['kafka_public'][:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
     notify: restart connect
     
   - name: KAFKA OVERLAY (CONNECT) | configuring cluster group id for {{ connect_service_name }}
@@ -191,18 +193,25 @@
         
     - name: KAFKA OVERLAY (CONNECT) | installing systemd {{ connect_service_name }} script
       template:
-        src: apache-kafka.service.j2
+        src: apache-connect.service.j2
         dest: "/etc/systemd/system/{{ connect_service_name }}.service"
         mode: 0640
         owner: "{{ connect_user }}"
         group: "{{ connect_group }}"
       notify:
         - reload systemd
-    
-    - name: KAFKA OVERLAY (CONNECT) | enabling {{ connect_service_name }}
-      systemd:
-        name: "{{ connect_service_name }}.service"
-        enabled: yes
+      when: 
+        - ansible_distribution_version is version_compare('7', '>=')
+        
+    - name: KAFKA OVERLAY (CONNECT) | installing sysvinit {{ connect_service_name }} script
+      template:
+        src: apache-connect.sysvinit.j2
+        dest: "/etc/init.d/{{ connect_service_name }}"
+        mode: 0755
+        owner: root
+        group: root
+      when: 
+        - ansible_distribution_version is version_compare('7', '<')
         
     when:
       - apache_kafka
@@ -218,7 +227,9 @@
       group: "{{ connect_group }}"
       state: directory
       mode: 0750
- 
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+      
   - set_fact:
       connect_override_name: "{{ (apache_kafka) | ternary(connect.distributed.apache.systemd_override, connect.distributed.confluent.systemd_override) }}"
    
@@ -232,11 +243,32 @@
     notify:
       - reload systemd
       - restart connect
-  
-  - name: KAFKA OVERLAY (CONNECT) | starting {{ connect_service_name }}
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+      
+  - name: KAFKA OVERLAY (CONNECT) | enabling {{ connect_service_name }} by systemd
     systemd:
       name: "{{ connect_service_name }}"
-      state: started
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  - name: KAFKA OVERLAY (CONNECT) | installing sysvinit {{ connect_service_name }} script
+    template:
+      src: confluent.sysvinit.j2
+      dest: "/etc/init.d/{{ connect_service_name }}"
+      mode: 0755
+      owner: root
+      group: root
+    when: 
+      - ansible_distribution_version is version_compare('7', '<')
+      
+  - name: KAFKA OVERLAY (CONNECT) | enabling {{ connect_service_name }} by svsvinit
+    sysvinit:
+      name: "{{ connect_service_name }}"
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '<')
       
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

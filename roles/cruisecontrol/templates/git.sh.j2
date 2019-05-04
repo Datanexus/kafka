@@ -1,0 +1,5 @@
+# Git initialization script
+
+if ! echo ${PATH} | /bin/grep -q {{ cruisecontrol.user_service }} ; then
+   PATH={{ cruisecontrol.user_service }}:${PATH}
+fi

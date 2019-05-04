@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env sh
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tconfluent-kafka-rest [-h]\\thelp\\n"
@@ -6,19 +8,21 @@ if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	exit 0
 fi
 
+DATE=`which date`
+
 if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ kafkarest.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
+	printf "[%s %s] INFO Starting {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
   {% for key, value in kafkarest.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
   /usr/bin/nohup /usr/bin/kafka-rest-start {{ kafkarest.config_file }} >> {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log 2>&1 &
 elif [ "$1" = "stop" ] ; then
-	printf "[%s %s] INFO Stopping {{ kafkarest.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
+	printf "[%s %s] INFO Stopping {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
 	/usr/bin/kafka-rest-stop
 elif [ "$1" = "restart" ] ; then
-	printf "[%s %s] INFO Stopping {{ kafkarest.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
+	printf "[%s %s] INFO Stopping {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
 	/usr/bin/kafka-rest-stop
-	printf "[%s %s] INFO Starting {{ kafkarest.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
+	printf "[%s %s] INFO Starting {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
   {% for key, value in kafkarest.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}

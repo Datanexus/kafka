@@ -1,4 +1,5 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # configure confluent controlcenter
 ---
@@ -8,14 +9,15 @@
 
 - block:
   
+  # cap number of brokers in config at 5
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring bootstrap servers
     lineinfile:
       path: "{{ control.center.config_file }}"
       regexp: '^bootstrap.servers='
-      line: "bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      line: "bootstrap.servers={{ groups['kafka_public'][:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#bootstrap.servers='
     notify: restart controlcenter
-    
+  
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring zookeeper hosts
     lineinfile:
       path: "{{ control.center.config_file }}"
@@ -115,7 +117,9 @@
       group: "{{ control.center.group }}"
       state: directory
       mode: 0750
-  
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+      
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | installing {{ control.center.service_name }} environment overrride
     template:
       src: environment.j2
@@ -126,11 +130,33 @@
     notify:
       - reload systemd
       - restart controlcenter
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
       
-  - name: CONFLUENT OVERLAY (CONTROL CENTER) | starting {{ control.center.service_name }}
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | starting {{ control.center.service_name }} by systemd
     systemd:
       name: "{{ control.center.service_name }}"
-      state: started
-        
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | installing sysvinit {{ control.center.service_name }} script
+    template:
+      src: confluent.sysvinit.j2
+      dest: "/etc/init.d/{{ control.center.service_name }}"
+      mode: 0755
+      owner: root
+      group: root
+    when: 
+      - ansible_distribution_version is version_compare('7', '<')
+      
+  # the restart handler should take care of starting the service
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | enabling {{ control.center.service_name }} by sysvinit
+    sysvinit:
+      name: "{{ control.center.service_name }}"
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '<')
+  
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

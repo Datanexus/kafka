@@ -1,3 +1,6 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
 # configuration variables for schema registry services
 schema:
   registry:
@@ -11,5 +14,6 @@ schema:
       schema_registry_listener_port: '8081'
       kafkastore.topic: _schemas
       kafkastore_ssl_endpoint_identification_algorithm: ""
+      log_dir: /var/log/confluent/schema-registry
     environment:
       SCHEMA_REGISTRY_HEAP_OPTS: "-Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"

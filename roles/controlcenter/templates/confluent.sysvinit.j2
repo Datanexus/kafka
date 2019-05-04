@@ -1,0 +1,57 @@
+#!/bin/bash
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
+# chkconfig: 35 90 12
+# description: confluent control center
+#
+
+# pidfile: /var/run/{{ control.center.service_name }}.pid
+
+# source function library
+. /etc/init.d/functions
+
+PID_FILE=/var/run/{{ control.center.service_name }}.pid
+
+start() {
+  if [ -x `which logger` ]; then
+    logger -s -t {{ control.center.service_name }} 'starting service...'
+  fi
+  {% for key, value in control.center.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  daemon --pidfile ${PID_FILE} --user {{ control.center.user }} /usr/bin/control-center-start {{ control.center.config_file }} >> {{ control.center.config.logDir }}/control-center.log 2>&1 &
+  sleep 3
+  /usr/bin/jcmd | grep 'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+}
+
+stop() {
+  if [[ -s "${PID_FILE}" ]]; then
+    if [ -x `which logger` ]; then
+      logger -s -t {{ control.center.service_name }} 'stopping service...'
+    fi
+    killproc -p ${PID_FILE}
+    sleep 3
+  fi
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p ${PID_FILE} java
+    ;;
+  restart|reload|condrestart)
+    stop
+    start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|reload|status}"
+    exit 1
+esac
+
+exit $?

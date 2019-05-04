@@ -1,13 +1,31 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # handlers used during confluent connect installation
 ---
 - name: reload systemd
   command: systemctl daemon-reload
   become: yes
-  
-- name: restart connect
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '>=')
+    
+- name: systemd connect
+  listen: "restart connect"
   systemd:
     name: "{{ connect_service_name }}"
     state: restarted
   become: yes
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '>=')
+
+- name: sysvinit connect
+  listen: "restart connect"
+  sysvinit:
+    name: "{{ connect_service_name }}"
+    state: restarted
+  become: yes
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - ansible_distribution_version is version_compare('7', '<')

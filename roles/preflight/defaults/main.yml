@@ -1,3 +1,6 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
 # configuration variables for linux environments
 linux:
   limits:
@@ -37,3 +40,5 @@ linux:
       dirty_background_ratio:
       dirty_writeback_centisecs:
       dirty_expire_centisecs:
+packages:
+  python_version: '2.7.9'

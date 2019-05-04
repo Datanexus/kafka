@@ -1,4 +1,5 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 #
 ---
@@ -238,23 +239,25 @@
       - groups['cruisecontrol'] is defined
       - groups['cruisecontrol'] | length > 0
     notify: restart broker
-    
+  
+  # cap number of brokers in config at 5
   - name: KAFKA OVERLAY (BROKER) | enabling and configuring control center metrics bootstrap servers for {{ broker_service_name }}
     lineinfile:
       path: "{{ broker_config_file }}"
       regexp: '^confluent.metrics.reporter.bootstrap.servers='
-      line: "confluent.metrics.reporter.bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      line: "confluent.metrics.reporter.bootstrap.servers={{ groups['kafka_public'][:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#confluent.metrics.reporter.bootstrap.servers='
     when:
       - groups['controlcenter'] is defined
       - groups['controlcenter'] | length > 0
     notify: restart broker
   
+  # cap number of brokers in config at 5
   - name: KAFKA OVERLAY (BROKER) | enabling and configuring cruise control metrics bootstrap servers for {{ broker_service_name }}
     lineinfile:
       path: "{{ broker_config_file }}"
       regexp: '^cruise.control.metrics.reporter.bootstrap.servers='
-      line: "cruise.control.metrics.reporter.bootstrap.servers={{ groups['kafka_public'] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      line: "cruise.control.metrics.reporter.bootstrap.servers={{ groups['kafka_public'][:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#confluent.metrics.reporter.bootstrap.servers='
     when:
       - groups['cruisecontrol'] is defined
@@ -440,6 +443,7 @@
   
 - block:
   
+  # apache block
   - block:
     
     - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka.environment.LOG_DIR }} exists
@@ -459,11 +463,19 @@
         group: "{{ broker_group }}"
       notify:
         - reload systemd
+      when: 
+        - ansible_distribution_version is version_compare('7', '>=')
     
-    - name: KAFKA OVERLAY (BROKER) | enabling {{ broker_service_name }}
-      systemd:
-        name: "{{ broker_service_name }}.service"
-        enabled: yes
+    - name: KAFKA OVERLAY (BROKER) | installing sysvinit {{ broker_service_name }} script
+      template:
+        src: apache-kafka.sysvinit.j2
+        dest: "/etc/init.d/{{ broker_service_name }}"
+        mode: 0755
+        owner: root
+        group: root
+      when: 
+        - ansible_distribution_version is version_compare('7', '<')
+        
     when:
       - apache_kafka
       - not confluent_kafka
@@ -478,7 +490,9 @@
       group: "{{ broker_group }}"
       state: directory
       mode: 0750
- 
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+  
   - name: KAFKA OVERLAY (BROKER) | installing {{ broker_service_name }} environment overrride
     template:
       src: environment.j2
@@ -489,11 +503,34 @@
     notify:
       - reload systemd
       - restart broker
-      
-  - name: KAFKA OVERLAY (BROKER) | starting {{ broker_service_name }}
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  # the restart handler should take care of starting the service
+  - name: KAFKA OVERLAY (BROKER) | enabling {{ broker_service_name }} by systemd
     systemd:
       name: "{{ broker_service_name }}"
-      state: started
-    
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  - name: KAFKA OVERLAY (BROKER) | installing sysvinit {{ broker_service_name }} script
+    template:
+      src: confluent.sysvinit.j2
+      dest: "/etc/init.d/{{ broker_service_name }}"
+      mode: 0755
+      owner: root
+      group: root
+    when: 
+      - ansible_distribution_version is version_compare('7', '<')
+
+  # the restart handler should take care of starting the service
+  - name: KAFKA OVERLAY (BROKER) | enabling {{ broker_service_name }} by sysvinit
+    sysvinit:
+      name: "{{ broker_service_name }}"
+      enabled: yes
+    when:
+      - ansible_distribution_version is version_compare('7', '<')
+      
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
