@@ -11,6 +11,13 @@
 # source function library
 . /etc/init.d/functions
 
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
+fi
+
 PID_FILE=/var/run/{{ schema.registry.service_name }}.pid
 
 start() {
@@ -22,7 +29,7 @@ start() {
   {%- endfor %}
   daemon --pidfile ${PID_FILE} --user {{ schema.registry.user }} /usr/bin/schema-registry-start {{ schema.registry.config_file }} >> {{ schema.registry.config.log_dir }}/schema-registry.log 2>&1 &
   sleep 3
-  /usr/bin/jcmd | grep 'io.confluent.kafka.schemaregistry.rest.SchemaRegistryMain {{ schema.registry.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+  ${JCMD} | grep 'io.confluent.kafka.schemaregistry.rest.SchemaRegistryMain {{ schema.registry.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }
 
 stop() {

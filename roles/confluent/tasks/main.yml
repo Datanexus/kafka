@@ -1,7 +1,7 @@
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
 # Licensed software not for distribution
 #
-#
+# code necessary for confluent binary install
 ---
 - set_fact:
     confluent_platform_version: "{{ confluent_distribution }}-{{ application_version | default(packages.scala_version) }}"
@@ -10,38 +10,136 @@
 - name: CONFLUENT OVERLAY | using first python interpreter in path
   raw: 'which python'
   register: python_interpreter
-
+  when: not use_existing_python
+  
 - name: CONFLUENT OVERLAY | updating ansible python in subsequent tasks
   set_fact:
     ansible_python_interpreter: '{{ python_interpreter.stdout }}'
-    
-- name: CONFLUENT OVERLAY | installing confluent platform public key
+  when: not use_existing_python
+  
+- name: CONFLUENT OVERLAY | installing confluent platform public key (failures here are okay)
   rpm_key:
     state: present
     key: "{{ confluent_public_key }}"
+    validate_certs: False
+  ignore_errors: yes
+  register: rpm_out
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
-
+  
 # reset the interpreter back to ansible default for package installation
 - name: CONFLUENT OVERLAY | defaulting to system python
   set_fact:
     ansible_python_interpreter: /usr/bin/python
-    
+  when: not use_existing_python
+
+  
 - block:
   
   - import_tasks: install-java.yml
-      
-  - name: CONFLUENT OVERLAY | configuring confluent platform repo for CentOS / Redhat
-    template:
-      src: confluent-repo.j2
-      dest: /etc/yum.repos.d/confluent.repo
-      mode: 0644
-
-  - name: CONFLUENT OVERLAY | installing {{ application_version | default(confluent_platform_version) }}
-    package:
-      name: "{{ application_version | default(confluent_platform_version) }}"
-      state: present
-    notify: yum-clean-all
+  
+  # this block handles a local installation, either because python < 2.7.9 or lack of external connectivity
+  - block:
+    
+    - name:  CONFLUENT OVERLAY | checking for confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz
+      stat: path="/tmp/confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz"
+      register: existing_package
         
+    - name: CONFLUENT OVERLAY | copying {{ application_version | default(confluent_platform_version) }} from local {{ tenant }} area (this may take some time)
+      copy:
+        src: "{{ tenant_config_path }}/packages/{{ item }}"
+        dest: "/tmp/{{ item }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: 0644
+      with_items:
+        - "confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz"
+      when: not existing_package.stat.exists
+      
+    - name: CONFLUENT OVERLAY | unarchiving confluent packages
+      unarchive:
+        src: "/tmp/confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz"
+        dest: /tmp
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        remote_src: yes
+    
+    # if you change the below order, you'd better know what ckeller@datanexus.org was thinking
+    - name: CONFLUENT OVERLAY | installing {{ application_version | default(confluent_platform_version) }} from system
+      package:
+        name: "/tmp/{{ item }}"
+        state: present
+      notify: yum-clean-all
+      with_items:
+        - "confluent-rebalancer-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-cli-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-hub-client-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.kafka_version }}.1cp1-1.noarch.rpm"
+        - "confluent-kafka-connect-storage-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-elasticsearch-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-hdfs-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jdbc-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jms-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-replicator-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-mqtt-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-rest-utils-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-rest-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-ksql-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-schema-registry-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-support-metrics-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-s3-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-fe-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-platform-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+    
+    - name: CONFLUENT OVERLAY | removing {{ application_version | default(confluent_platform_version) }} packages from system
+      file:
+        path: "/tmp/{{ item }}"
+        state: absent
+      with_items:
+        - "confluent-rebalancer-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-cli-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-hub-client-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.kafka_version }}.1cp1-1.noarch.rpm"
+        - "confluent-kafka-connect-storage-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-elasticsearch-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-hdfs-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jdbc-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jms-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-replicator-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-mqtt-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-rest-utils-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-rest-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-ksql-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-schema-registry-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-support-metrics-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-s3-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-fe-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-platform-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        
+    when: rpm_out.failed
+    
+  # this block handles the standard remote confluent installation
+  - block:
+    
+    - name: CONFLUENT OVERLAY | configuring confluent platform repo for CentOS / Redhat
+      template:
+        src: confluent-repo.j2
+        dest: /etc/yum.repos.d/confluent.repo
+        mode: 0644
+
+    - name: CONFLUENT OVERLAY | installing {{ application_version | default(confluent_platform_version) }} from confluent repos
+      package:
+        name: "{{ application_version | default(confluent_platform_version) }}"
+        state: present
+      notify: yum-clean-all
+    
+    when: not rpm_out.failed
+    
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  
+  

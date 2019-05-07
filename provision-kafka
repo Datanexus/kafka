@@ -62,6 +62,7 @@
   tags:
     - confluent
   vars_files:
+    - "{{ tenant_config_path }}/config/site.yml"
     - "{{ tenant_config_path }}/config/os/linux.yml"
   vars:
       # this is semi clever; application gets set based on each host group
@@ -94,8 +95,9 @@
   tags:
     - confluent
   vars_files:
-     - "{{ tenant_config_path }}/config/applications/confluent.yml"
-     - "{{ tenant_config_path }}/config/applications/apache.yml"
+    - "{{ tenant_config_path }}/config/site.yml"
+    - "{{ tenant_config_path }}/config/applications/confluent.yml"
+    - "{{ tenant_config_path }}/config/applications/apache.yml"
   gather_facts: yes
   tasks:
     

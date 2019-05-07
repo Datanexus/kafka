@@ -10,19 +10,6 @@
 # vm tuning
 - import_tasks: vm.yml
 
-- name: KAFKA OVERLAY (preflight python) | using first python interpreter in path
-  raw: 'which python'
-  register: python_interpreter
-
-- name: KAFKA OVERLAY (preflight python) | updating ansible python in subsequent tasks
-  set_fact:
-    ansible_python_interpreter: '{{ python_interpreter.stdout }}'
-
-- name: KAFKA OVERLAY (preflight python) | checking /usr/bin/python version
-  command: 'python --version'
-  register: python_out
-
-# ensure available ansible python (/usr/bin/python) version for CentOS/RHEL 6 is > 2.7.9
-# no idea why python writes to stderr instead of stdout but it does
 - import_tasks: upgrade-python.yml
-  when: python_out.failed or (python_out.stderr_lines.0 | regex_search('\d+\.\d+\.\d+')) is version_compare(packages.python_version, '<')
+  when:
+    - not use_existing_python
