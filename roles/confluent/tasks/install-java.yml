@@ -13,6 +13,22 @@
   when: ansible_distribution == 'CentOS'
   become: yes
   
+# giflib-4.1.6-3.1.el6.x86_64.rpm
+# jpackage-utils-1.7.5-3.16.el6.noarch.rpm
+# lksctp-tools-1.0.10-7.el6.x86_64.rpm
+# nspr-4.19.0-1.el6.x86_64.rpm
+# nss-3.36.0-9.el6_10.x86_64.rpm
+# nss-sysinit-3.36.0-9.el6_10.x86_64.rpm
+# nss-tools-3.36.0-9.el6_10.x86_64.rpm
+# nss-util-3.36.0-1.el6.x86_64.rpm
+# pcsc-lite-libs-1.5.2-16.el6.x86_64.rpm
+# ttmkfdir-3.0.9-32.1.el6.x86_64.rpm
+# tzdata-java-2019a-1.el6.noarch.rpm
+# xorg-x11-fonts-Type1-7.2-11.el6.noarch.rpm
+# java-1.8.0-openjdk-1.8.0.212.b04-0.el6_10.x86_64.rpm
+# java-1.8.0-openjdk-devel-1.8.0.212.b04-0.el6_10.x86_64.rpm
+# java-1.8.0-openjdk-headless-1.8.0.212.b04-0.el6_10.x86_64.rpm
+
 - name: CONFLUENT OVERLAY | installing java {{ packages.java_version }} packages
   package:
     name: "{{ item }}"

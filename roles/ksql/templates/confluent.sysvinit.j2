@@ -11,6 +11,13 @@
 # source function library
 . /etc/init.d/functions
 
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
+fi
+
 PID_FILE=/var/run/{{ ksql.service_name }}.pid
 
 start() {
@@ -22,7 +29,7 @@ start() {
   {%- endfor %}
   daemon --pidfile ${PID_FILE} --user {{ ksql.user }} /usr/bin/ksql-server-start {{ ksql.config_file }} >> {{ ksql.config.logs }}/server.log 2>&1 &
   sleep 3
-  /usr/bin/jcmd | grep 'io.confluent.ksql.rest.server.KsqlServerMain {{ ksql.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+  ${JCMD} | grep 'io.confluent.ksql.rest.server.KsqlServerMain {{ ksql.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }
 
 stop() {

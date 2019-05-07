@@ -11,6 +11,13 @@
 # source function library
 . /etc/init.d/functions
 
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
+fi
+
 PID_FILE=/var/run/{{ control.center.service_name }}.pid
 
 start() {
@@ -22,7 +29,7 @@ start() {
   {%- endfor %}
   daemon --pidfile ${PID_FILE} --user {{ control.center.user }} /usr/bin/control-center-start {{ control.center.config_file }} >> {{ control.center.config.logDir }}/control-center.log 2>&1 &
   sleep 3
-  /usr/bin/jcmd | grep 'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+  ${JCMD} | grep 'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }
 
 stop() {

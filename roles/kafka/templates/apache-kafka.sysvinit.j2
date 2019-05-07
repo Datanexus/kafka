@@ -11,6 +11,13 @@
 # source function library
 . /etc/init.d/functions
 
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
+fi
+
 PID_FILE=/var/run/{{ broker_service_name }}.pid
 
 start() {
@@ -22,7 +29,7 @@ start() {
   {%- endfor %}
   daemon --pidfile ${PID_FILE} --user {{ broker_user }} {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/kafka-server-start.sh {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
   sleep 3
-  /usr/bin/jcmd | grep 'io.confluent.support.metrics.SupportedKafka {{ broker_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+  ${JCMD} | grep 'io.confluent.support.metrics.SupportedKafka {{ broker_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }
 
 stop() {
