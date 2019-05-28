@@ -27,7 +27,7 @@ start() {
   {% for key, value in zookeeper.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  daemon --pidfile ${PID_FILE} --user {{ zookeeper_user }} /usr/bin/zookeeper-server-start {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log 2>&1 &
+  daemon --pidfile ${PID_FILE} --user {{ zookeeper_user }} -daemon /usr/bin/zookeeper-server-start -daemon {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log 2>&1
   sleep 3
   ${JCMD} | grep 'org.apache.zookeeper.server.quorum.QuorumPeerMain {{ zookeeper_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }

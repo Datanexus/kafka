@@ -1,24 +1,24 @@
 # configuration variables for confluent ksql services
 ksql:
-  config_file: /etc/ksql/ksql-server.properties
+  config_file: "{{ (got_root | default('yes')) | ternary('/etc/ksql/ksql-server.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/ksql/ksql-server.properties')) }}"
   service_name: confluent-ksql
   systemd_override: /etc/systemd/system/confluent-ksql.service.d
-  user_service: /usr/local/bin
-  user: cp-ksql
-  group: confluent
+  user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
+  user: "{{ (got_root | default('yes')) | ternary('cp-ksql', ansible_user) }}"
+  group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
   environment:
     KSQL_HEAP_OPTS: "-Xmx3g"
     # this is broken confluent logging; they define -Dksql.log.dir=/usr/logs in a magic place
-    KSQL_OPTS: "-Dksql.log.dir=/var/log/confluent/ksql -Xloggc:/var/log/confluent/ksql/ksql-server-gc.log"
+    KSQL_OPTS: "-Dksql.log.dir={{ (got_root | default('yes')) | ternary('/var/log/confluent/ksql', confluent_root + '/var/log/confluent/ksql')}} -Xloggc:{{ (got_root | default('yes')) | ternary('/var/log/confluent/ksql/ksql-server-gc.log', confluent_root + '/var/log/confluent/ksql/ksql-server-gc.log')}}"
     # uncomment the following line to turn on JMX on port 10101
     # JMX_PORT: 10101
   config:
     application.id: ksql-server
     listener_port: '8088'
-    logs: /var/log/confluent/ksql
+    logs: "{{ (got_root | default('yes')) | ternary('/var/log/confluent/ksql', confluent_root + '/var/log/confluent/ksql')}}"
     # referenced in /etc/ksql/log4j-file.properties
-    cli_logs: /usr/logs/ksql-cli
+    cli_logs: "{{ (got_root | default('yes')) | ternary('/usr/logs/ksql-clil', confluent_root + '/usr/logs/ksql-cli')}}"
     # this doesn't appear to be configurable
-    streams: /var/lib/kafka-streams
+    streams: "{{ (got_root | default('yes')) | ternary('/var/lib/kafka-streams', confluent_root + '/var/lib/kafka-streams')}}"
     ssl.endpoint.identification.algorithm: ""
     confluent_metrics: False

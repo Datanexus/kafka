@@ -5,34 +5,12 @@
 ---
 # this isn't strictly necessary for ksql, but the kafka broker default variables need JVM settings
 - import_tasks: tune.yml
-  
 - import_tasks: interface-facts.yml
 
+- set_fact: 
+    ksql_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+
 - block:
-  
-  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.logs }} exists
-    file:
-      path: "{{ ksql.config.logs }}"
-      owner: "{{ ksql.user }}"
-      group: "{{ ksql.group }}"
-      state: directory
-      mode: 0755
-  
-  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.streams }} exists
-    file:
-      path: "{{ ksql.config.streams }}"
-      owner: "{{ ksql.user }}"
-      group: "{{ ksql.group }}"
-      state: directory
-      mode: 0755
-  
-  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.cli_logs }} exists
-    file:
-      path: "{{ ksql.config.cli_logs }}"
-      owner: "{{ ansible_user }}"
-      group: "{{ ansible_user }}"
-      state: directory
-      mode: 0755
   
   # cap number of brokers in config at 5
   - name: CONFLUENT OVERLAY (KSQL) | configuring bootstrap servers for {{ ksql.service_name }}
@@ -59,8 +37,8 @@
   - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.user_service }} exists
     file:
       path: "{{ ksql.user_service }}"
-      owner: root
-      group: root
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
       state: directory
       mode: 0755
       
@@ -71,9 +49,43 @@
       mode: 0755
       owner: "{{ ksql.user }}"
       group: "{{ ksql.group }}"
-      
-  become: yes
   
+  # this is a little odd because we either need to be root or the zookeeper_user
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }} exists
+    file:
+      path: "{{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }}"
+      owner: "{{ (got_root | default('yes')) | ternary('root', ksql.user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('root', ksql.group) }}"
+      state: directory
+      mode: 0755
+  
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.logs }} exists
+    file:
+      path: "{{ ksql.config.logs }}"
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
+      state: directory
+      mode: 0755
+  
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.streams }} exists
+    file:
+      path: "{{ ksql.config.streams }}"
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
+      state: directory
+      mode: 0755
+  
+  - name: CONFLUENT OVERLAY (KSQL) | ensuring {{ ksql.config.cli_logs }} exists
+    file:
+      path: "{{ ksql.config.cli_logs }}"
+      owner: "{{ ksql.user }}"
+      group: "{{ ksql.group }}"
+      state: directory
+      mode: 0755
+      
+  # the thinking here is that these files are either restricted or not and that drives our escalation  
+  become: "{{ got_root | default('yes') }}"
+    
 - block:
   
   - name: CONFLUENT OVERLAY (KSQL) | creating systemd override directory
@@ -124,5 +136,7 @@
       - ansible_distribution_version is version_compare('7', '<')
       
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when:
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   

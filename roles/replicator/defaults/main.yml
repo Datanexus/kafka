@@ -4,7 +4,7 @@ replicator:
     service_name: kafka-connect-replicator
     config_file: /etc/kafka-connect-replicator/replicator-connect-distributed.properties
     config:
-      rest_port: 8083
+      rest_port: '8083'
       tasks: 4
   user: cp-kafka-connect
   group: confluent
@@ -18,12 +18,3 @@ replicator:
     confluent_license: /etc/kafka-connect-replicator/license
     consumer: consumer.properties
     producer: producer.properties
-broker:
-   config:
-     # if this gets changed it needs to be changed under kafka defaults
-     broker_port: '9092'
-zookeeper:
-  config:
-    # this needs to be quoted as a string for concatenation purposes
-    # if this gets changed it needs to be changed under zookeeper defaults
-    port: '2181'

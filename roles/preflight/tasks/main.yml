@@ -9,7 +9,7 @@
 - import_tasks: kernel.yml
 # vm tuning
 - import_tasks: vm.yml
-
+# upgrade the system python if applicable
 - import_tasks: upgrade-python.yml
-  when:
-    - not use_existing_python
+- import_tasks: install-java.yml
+  

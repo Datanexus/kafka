@@ -12,20 +12,20 @@ kafka:
   apache:
     user: kafka
     group: kafka
-    config_file: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/server.properties"
+    config_file: "{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/config/server.properties"
     service_name: apache-kafka
     systemd_override: /etc/systemd/system/apache-kafka.service.d
   confluent:
-    user: cp-kafka
-    group: confluent
-    config_file: /etc/kafka/server.properties
+    user: "{{ (got_root | default('yes')) | ternary('cp-kafka', ansible_user) }}"
+    group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
+    config_file: "{{ (got_root | default('yes')) | ternary('/etc/kafka/server.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/kafka/server.properties')) }}"
     systemd_override: /etc/systemd/system/confluent-kafka.service.d
     service_name: confluent-kafka 
-  user_service: /usr/local/bin
+  user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
   environment:
     KAFKA_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g -Xms{{ jvm_heap_mem }}g"
     KAFKA_JVM_PERFORMANCE_OPTS: "-XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
-    LOG_DIR: /var/log/kafka
+    LOG_DIR: "{{ (got_root | default('yes')) | ternary('/var/log/kafka', confluent_root + '/var/log/kafka')}}"
     # this does not seem to work to eliminate the subject alternative name error
     # KAFKA_OPTS: "-Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"
     # uncomment the following line to turn on JMX on port 10101
@@ -42,8 +42,7 @@ kafka:
     socket_receive_buffer_bytes: 102400
     socket_request_max_bytes: 104857600
     # this needs to be quoted as a string for concatenation purposes
-    logDir:
-      - '/var/lib/kafka/data'
+    logDir: "{{ broker_data_dir | default('/var/lib/kafka/data') }}"
     default_num_partitions: 1
     num_recovery_threads_per_data_dir: 2
     offsets_topic_replication_factor: 3

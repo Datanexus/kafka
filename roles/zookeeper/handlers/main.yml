@@ -6,7 +6,8 @@
 - name: reload systemd
   command: systemctl daemon-reload
   become: yes
-  when: 
+  when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '>=')
     
@@ -16,7 +17,8 @@
     name: "{{ zookeeper_service_name }}"
     state: restarted
   become: yes
-  when: 
+  when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '>=')
 
@@ -27,9 +29,16 @@
     state: restarted
   become: yes
   when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '<')
-        
+
+- name: user zookeeper
+  listen: "restart zookeeper"
+  command: "{{ zookeeper.user_service }}/zookeeper restart"
+  when:
+    - not got_root
+    
 - name: pause
   listen: "restart zookeeper"
   pause:

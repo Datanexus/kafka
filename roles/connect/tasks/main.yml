@@ -18,6 +18,9 @@
 
 - set_fact: 
     connect_config_file: "{{ (apache_kafka) | ternary(connect.distributed.apache.config_file, connect.distributed.confluent.config_file) }}"
+
+- set_fact: 
+    connect_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
     
 - block:
   
@@ -152,11 +155,20 @@
   - name: KAFKA OVERLAY (CONNECT) | ensuring {{ connect.distributed.user_service }} exists
     file:
       path: "{{ connect.distributed.user_service }}"
-      owner: root
-      group: root
+      owner: "{{ connect_user }}"
+      group: "{{ connect_group }}"
       state: directory
       mode: 0755
-
+  
+  # this is a little odd because we either need to be root or the connect_user
+  - name:  KAFKA OVERLAY (CONNECT)  | ensuring {{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }} exists
+    file:
+      path: "{{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }}"
+      owner: "{{ (got_root | default('yes')) | ternary('root', connect_user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('root', connect_group) }}"
+      state: directory
+      mode: 0755
+      
   - name: KAFKA OVERLAY (CONNECT) | ensuring {{ connect.distributed.environment.LOG_DIR }} exists
     file:
       path: "{{ connect.distributed.environment.LOG_DIR }}"
@@ -185,8 +197,9 @@
       owner: "{{ connect_user }}"
       group: "{{ connect_group }}"
     
-  become: yes
- 
+  # the thinking here is that these files are either restricted or not and that drives our escalation  
+  become: "{{ got_root | default('yes') }}"
+  
 - block:
   
   - block:
@@ -271,4 +284,6 @@
       - ansible_distribution_version is version_compare('7', '<')
       
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when:
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

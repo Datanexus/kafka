@@ -1,32 +1,16 @@
 # configuration variables for kafka rest services
 kafkarest:
-  user: cp-kafka-rest
-  group: confluent
-  config_file: /etc/kafka-rest/kafka-rest.properties
+  user: "{{ (got_root | default('yes')) | ternary('cp-kafka-rest', ansible_user) }}"
+  group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
+  config_file: "{{ (got_root | default('yes')) | ternary('/etc/kafka-rest/kafka-rest.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/kafka-rest/kafka-rest.properties')) }}"
   service_name: confluent-kafka-rest
   systemd_override: /etc/systemd/system/confluent-kafka-rest.service.d
-  user_service: /usr/local/bin
+  user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
   config:
-    rest_port: 8082
+    rest_port: '8082'
     group_id: kafka-rest-server 
     client.ssl.endpoint.identification.algorithm: ""
   environment:
-    LOG_DIR: /var/log/kafka-rest
+    LOG_DIR: "{{ (got_root | default('yes')) | ternary('/var/log/kafka-rest', confluent_root + '/var/log/kafka-rest') }}"
     # this fixes the broken confluent logging; it can be removed if they fix /usr/bin/kafka-rest-start to properly define kafka-rest.log.dir
-    KAFKA_LOG4J_OPTS: "-Dkafka-rest.log.dir=/var/log/kafka-rest"
-kafkabroker:
-  config:
-    # this needs to be quoted as a string for concatenation purposes
-    broker_port: '9092'
-schema:
-  registry:
-    config:
-      schema_registry_listener_port: '8081'
-zookeeper:
-  config:
-    # this needs to be quoted as a string for concatenation purposes
-    # if this gets changed it needs to be changed under zookeeper defaults
-    port: '2181'
-    
-    
-  
+    KAFKA_LOG4J_OPTS: "-Dkafka-rest.log.dir={{ (got_root | default('yes')) | ternary('/var/log/kafka-rest', confluent_root + '/var/log/kafka-rest') }}"

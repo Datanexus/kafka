@@ -1,37 +1,41 @@
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # install kafka cluster helper utilities
 ---
-- set_fact: 
+- set_fact:
     zookeeper_user: "{{ (apache_kafka) | ternary(zookeeper.apache.user, zookeeper.confluent.user) }}"
 
-- set_fact: 
+- set_fact:
     broker_user: "{{ (apache_kafka) | ternary(kafka.apache.user, kafka.confluent.user) }}"
 
-- set_fact: 
+- set_fact:
      broker_group: "{{ (apache_kafka) | ternary(kafka.apache.group, kafka.confluent.group) }}"
-  
-- set_fact: 
-    broker_service_name: "{{ (apache_kafka) | ternary(kafka.apache.service_name, kafka.confluent.service_name) }}"
-
-- set_fact: 
-    broker_config_file: "{{ (apache_kafka) | ternary(kafka.apache.config_file, kafka.confluent.config_file) }}"
 
 - set_fact:
-    apache_bin: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin"
+    broker_service_name: "{{ (apache_kafka) | ternary(kafka.apache.service_name, kafka.confluent.service_name) }}"
 
+- set_fact:
+    broker_config_file: "{{ (apache_kafka) | ternary(kafka.apache.config_file, kafka.confluent.config_file) }}"
+  
+- set_fact:
+    apache_bin: "{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/bin"
+
+- set_fact:
+    dn_bin_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+    
 - set_fact: 
-    utils_path: "{{ (apache_kafka) | ternary(apache_bin, '/usr/bin') }}"
+    utils_path: "{{ (apache_kafka) | ternary(apache_bin, dn_bin_path) }}"
 
 - set_fact: 
     bin_suffix: "{{ (apache_kafka) | ternary('.sh', '') }}"
-
+    
 - block:
 
-  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic list utility
+  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic list utility to {{ postflight.utilsDir }}
     template:
       src: list-topics.j2
-      dest: "{{ utilsDir | default (postflight.utilsDir) }}/list-topics"
+      dest: "{{ postflight.utilsDir }}/list-topics"
       mode: 0755
       owner: "{{ broker_user }}"
       group: "{{ broker_group }}"
@@ -39,10 +43,10 @@
       - groups['zookeeper'] is defined
       - groups['zookeeper'] | length > 0
       
-  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic describe utility
+  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic describe utility to {{ postflight.utilsDir }}
     template:
       src: describe-topic.j2
-      dest: "{{ utilsDir | default (postflight.utilsDir) }}/describe-topic"
+      dest: "{{ postflight.utilsDir }}/describe-topic"
       mode: 0755
       owner: "{{ broker_user }}"
       group: "{{ broker_group }}"
@@ -50,10 +54,10 @@
       - groups['zookeeper'] is defined
       - groups['zookeeper'] | length > 0
       
-  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic consume utility
+  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic consume utility to {{ postflight.utilsDir }}
     template:
       src: consume-topic.j2
-      dest: "{{ utilsDir | default (postflight.utilsDir) }}/consume-topic"
+      dest: "{{ postflight.utilsDir }}/consume-topic"
       mode: 0755
       owner: "{{ broker_user }}"
       group: "{{ broker_group }}"
@@ -61,4 +65,4 @@
       - groups['kafka_broker'] is defined
       - groups['kafka_broker'] | length > 0
       
-  become: true
+  become: "{{ got_root | default('yes') }}"

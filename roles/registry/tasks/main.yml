@@ -8,6 +8,9 @@
 
 - import_tasks: interface-facts.yml
 
+- set_fact: 
+    registry_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+    
 - block:
   
   - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | configuring {{ schema.registry.service_name }} listeners 
@@ -27,14 +30,6 @@
   - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | ensuring {{ schema.registry.user_service }} exists
     file:
       path: "{{ schema.registry.user_service }}"
-      owner: root
-      group: root
-      state: directory
-      mode: 0755
-  
-  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | ensuring {{ schema.registry.config.log_dir }} exists
-    file:
-      path: "{{ schema.registry.config.log_dir }}"
       owner: "{{ schema.registry.user }}"
       group: "{{ schema.registry.group }}"
       state: directory
@@ -47,8 +42,26 @@
       mode: 0755
       owner: "{{ schema.registry.user }}"
       group: "{{ schema.registry.group }}"
+  
+  # this is a little odd because we either need to be root or the registry user
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | ensuring {{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }} exists
+    file:
+      path: "{{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }}"
+      owner: "{{ (got_root | default('yes')) | ternary('root', schema.registry.user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('root', schema.registry.group) }}"
+      state: directory
+      mode: 0755
       
-  become: yes
+  - name: CONFLUENT OVERLAY (SCHEMA REGISTRY) | ensuring {{ schema.registry.config.log_dir }} exists
+    file:
+      path: "{{ schema.registry.config.log_dir }}"
+      owner: "{{ schema.registry.user }}"
+      group: "{{ schema.registry.group }}"
+      state: directory
+      mode: 0755
+      
+  # the thinking here is that these files are either restricted or not and that drives our escalation  
+  become: "{{ got_root | default('yes') }}"
   
 - block:
   
@@ -98,5 +111,7 @@
       - ansible_distribution_version is version_compare('7', '<')
       
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when:
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   

@@ -1,10 +1,11 @@
 #!/bin/sh
-# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 
 # no arguments means describe all
 if [ $# -eq 0 ] ; then
-  ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:{{ zookeeper.config.port }}
-  TOPICS=`/usr/bin/kafka-topics --list --zookeeper $ZOOKEEPER_HOSTS`
+  ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
+  TOPICS=`{{ dn_bin_path }}/kafka-topics --list --zookeeper $ZOOKEEPER_HOSTS`
 # help
 elif [ "$1" = "-h" ] ; then
   printf "Usage:  describe-topic [-h]\\thelp\\n"
@@ -17,7 +18,7 @@ elif [[ $# -ge 2 && "$1" = "-z" ]] ; then
   TOPICS=$@
 # topics as listed
 elif [ $# -ge 1 ] ; then
-	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':2181,') }}:{{ zookeeper.config.port }}
+	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
   TOPICS=$@
 fi
 

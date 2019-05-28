@@ -4,7 +4,7 @@
 # code necessary for confluent binary install
 ---
 - set_fact:
-    confluent_platform_version: "{{ confluent_distribution }}-{{ application_version | default(packages.scala_version) }}"
+    confluent_platform_version: "{{ confluent_distribution }}-{{ application_version | default(confluent.packages.scala_version) }}"
 
 # rpm_key needs a python > 2.7.9 to install keys
 - name: CONFLUENT OVERLAY | using first python interpreter in path
@@ -25,7 +25,9 @@
   ignore_errors: yes
   register: rpm_out
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when: 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - got_root | default('yes')
   
 # reset the interpreter back to ansible default for package installation
 - name: CONFLUENT OVERLAY | defaulting to system python
@@ -33,37 +35,62 @@
     ansible_python_interpreter: /usr/bin/python
   when: not use_existing_python
 
+# this section gets the appropriate package (rpms or tarball) onto each system
+- set_fact:
+    dn_confluent: "{{ (got_root | default('yes')) | ternary('confluent-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}-{{ confluent.packages.scala_version }}.rpmbundle.tar.gz','confluent-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}-{{ confluent.packages.scala_version }}.tar.gz') }}"
   
+- name:  CONFLUENT OVERLAY | checking for {{ dn_confluent }}
+  stat: path="/tmp/{{ dn_confluent }}"
+  register: existing_package
+
+# if there is an existing confluent installation we want to skip the unarchiving
+- name: CONFLUENT OVERLAY | checking for existing {{ confluent_root }}/confluent-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release.split('-')[0] }}
+  stat: path="{{ confluent_root }}/confluent-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release.split('-')[0] }}"
+  register: existing_install
+  when: not got_root | default('yes')
+
+- name: CONFLUENT OVERLAY | copying {{ application_version | default(confluent_platform_version) }} from {{ cloud_packages }} (this may take some time)
+  get_url:
+    url: "{{ cloud_packages }}/{{ dn_confluent }}"
+    dest: "/tmp/{{ dn_confluent }}"
+    mode: 0640
+  when:
+    - cloud_packages is defined
+    - not existing_install.stat.exists or (got_root | default('yes'))
+    
+- name: CONFLUENT OVERLAY | copying {{ application_version | default(confluent_platform_version) }} from local {{ tenant }} area (this may take some time)
+  copy:
+    src: "{{ tenant_config_path }}/packages/{{ dn_confluent }}"
+    dest: "/tmp/{{ dn_confluent }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0644
+  when:
+    - cloud_packages is undefined
+    - not existing_install.stat.exists or (got_root | default('yes'))
+
+- name: CONFLUENT OVERLAY | unarchiving confluent packages to {{ (got_root | default('yes')) | ternary('/tmp', confluent_root) }}
+  unarchive:
+    src: "/tmp/{{ dn_confluent }}"
+    dest: "{{ (got_root | default('yes')) | ternary('/tmp', confluent_root) }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    remote_src: yes
+  when:
+    - not existing_install.stat.exists or (got_root | default('yes'))
+
+- name: CONFLUENT OVERLAY | removing /tmp/{{ dn_confluent }} from system
+  file:
+    path: "/tmp/{{ dn_confluent }}"
+    state: absent
+  when:
+    - existing_package.stat.exists
+
 - block:
-  
-  - import_tasks: install-java.yml
   
   # this block handles a local installation, either because python < 2.7.9 or lack of external connectivity
   - block:
-    
-    - name:  CONFLUENT OVERLAY | checking for confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz
-      stat: path="/tmp/confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz"
-      register: existing_package
-        
-    - name: CONFLUENT OVERLAY | copying {{ application_version | default(confluent_platform_version) }} from local {{ tenant }} area (this may take some time)
-      copy:
-        src: "{{ tenant_config_path }}/packages/{{ item }}"
-        dest: "/tmp/{{ item }}"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        mode: 0644
-      with_items:
-        - "confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz"
-      when: not existing_package.stat.exists
       
-    - name: CONFLUENT OVERLAY | unarchiving confluent packages
-      unarchive:
-        src: "/tmp/confluent-{{ packages.confluent_version }}.{{ packages.minor_release }}.tar.gz"
-        dest: /tmp
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
-        remote_src: yes
-    
     # if you change the below order, you'd better know what ckeller@datanexus.org was thinking
     - name: CONFLUENT OVERLAY | installing {{ application_version | default(confluent_platform_version) }} from system
       package:
@@ -71,57 +98,59 @@
         state: present
       notify: yum-clean-all
       with_items:
-        - "confluent-rebalancer-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-cli-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-hub-client-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.kafka_version }}.1cp1-1.noarch.rpm"
-        - "confluent-kafka-connect-storage-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-elasticsearch-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-hdfs-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-jdbc-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-jms-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-replicator-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-mqtt-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-rest-utils-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-rest-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-ksql-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-schema-registry-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-support-metrics-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-s3-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-control-center-fe-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-control-center-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-platform-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-rebalancer-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-cli-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-common-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-hub-client-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-{{ confluent.packages.application_version | default(confluent.packages.scala_version) }}-{{ confluent.packages.kafka_version }}.1cp1-1.noarch.rpm"
+        - "confluent-kafka-connect-storage-common-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-elasticsearch-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-hdfs-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jdbc-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jms-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-replicator-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-mqtt-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-rest-utils-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-rest-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-ksql-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-schema-registry-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-support-metrics-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-s3-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-fe-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-platform-{{ confluent.packages.application_version | default(confluent.packages.scala_version) }}-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
     
     - name: CONFLUENT OVERLAY | removing {{ application_version | default(confluent_platform_version) }} packages from system
       file:
         path: "/tmp/{{ item }}"
         state: absent
       with_items:
-        - "confluent-rebalancer-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-cli-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-hub-client-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.kafka_version }}.1cp1-1.noarch.rpm"
-        - "confluent-kafka-connect-storage-common-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-elasticsearch-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-hdfs-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-jdbc-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-jms-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-replicator-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-mqtt-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-rest-utils-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-rest-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-ksql-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-schema-registry-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-support-metrics-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-kafka-connect-s3-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-control-center-fe-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-control-center-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
-        - "confluent-platform-{{ packages.application_version | default(packages.scala_version) }}-{{ packages.confluent_version }}.{{ packages.minor_release }}.noarch.rpm"
+        - "confluent-rebalancer-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-cli-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-common-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-hub-client-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-{{ confluent.packages.application_version | default(confluent.packages.scala_version) }}-{{ confluent.packages.kafka_version }}.1cp1-1.noarch.rpm"
+        - "confluent-kafka-connect-storage-common-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-elasticsearch-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-hdfs-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jdbc-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-jms-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-replicator-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-mqtt-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-rest-utils-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-rest-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-ksql-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-schema-registry-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-support-metrics-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-kafka-connect-s3-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-fe-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-control-center-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
+        - "confluent-platform-{{ confluent.packages.application_version | default(confluent.packages.scala_version) }}-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}.noarch.rpm"
         
-    when: rpm_out.failed
-    
+    when:
+      - rpm_out
+      - rpm_out.failed
+  
   # this block handles the standard remote confluent installation
   - block:
     
@@ -140,6 +169,6 @@
     when: not rpm_out.failed
     
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
-  
-  
+  when:
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

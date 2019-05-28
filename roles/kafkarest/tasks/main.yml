@@ -2,9 +2,13 @@
 # Licensed software not for distribution
 #
 #
---- 
+---
+- import_tasks: tune.yml
 - import_tasks: interface-facts.yml
 
+- set_fact: 
+    rest_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+    
 - block:
   
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring kafka rest proxy group id
@@ -21,7 +25,9 @@
       regexp: '^schema.registry.url='
       line: "schema.registry.url=http://{{ groups['registry'] | join(':' + schema.registry.config.schema_registry_listener_port + ',http://') }}:{{ schema.registry.config.schema_registry_listener_port }}"
       insertafter: '^#schema.registry.url='
-    when: groups['registry'] | length > 0
+    when:
+      - groups['registry'] is defined
+      - groups['registry'] | length > 0
     notify: restart kafkarest
   
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring zookeeper hosts
@@ -37,7 +43,7 @@
     lineinfile:
       path: "{{ kafkarest.config_file }}"
       regexp: '^bootstrap.servers='
-      line: "bootstrap.servers=PLAINTEXT://{{ groups['kafka_public'][:5] | join(':' + kafkabroker.config.broker_port + ',PLAINTEXT://') }}:{{ kafkabroker.config.broker_port }}"
+      line: "bootstrap.servers=PLAINTEXT://{{ groups['kafka_public'][:5] | join(':' + kafka.config.broker_port + ',PLAINTEXT://') }}:{{ kafka.config.broker_port }}"
     notify: restart kafkarest
   
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | configuring {{ kafkarest.service_name }} listener
@@ -47,7 +53,16 @@
       line: "listeners=http://{{ kafka_interface_ipv4 }}:{{ kafkarest.config.rest_port }}"
       insertafter: '^bootstrap.servers='
     notify: restart kafkarest
-
+  
+  # this is a little odd because we either need to be root or the kafkarest.user
+  - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | ensuring {{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }} exists
+    file:
+      path: "{{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }}"
+      owner: "{{ (got_root | default('yes')) | ternary('root', kafkarest.user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('root', kafkarest.group) }}"
+      state: directory
+      mode: 0755
+      
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | ensuring {{ kafkarest.environment.LOG_DIR }} exists
     file:
       path: "{{ kafkarest.environment.LOG_DIR }}"
@@ -60,8 +75,8 @@
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | ensuring {{ kafkarest.user_service }} exists
     file:
       path: "{{ kafkarest.user_service }}"
-      owner: root
-      group: root
+      owner: "{{ kafkarest.user }}"
+      group: "{{ kafkarest.group }}"
       state: directory
       mode: 0755
       
@@ -73,8 +88,9 @@
       owner: "{{ kafkarest.user }}"
       group: "{{ kafkarest.group }}"
     
-  become: yes
-  
+  # the thinking here is that these files are either restricted or not and that drives our escalation  
+  become: "{{ got_root | default('yes') }}"
+    
 - block:
   
   - name: CONFLUENT OVERLAY (KAFKA REST PROXY) | creating systemd override directory
@@ -126,5 +142,7 @@
       - ansible_distribution_version is version_compare('7', '<')
       
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when:
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   

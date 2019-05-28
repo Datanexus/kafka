@@ -1,14 +1,18 @@
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
 # Licensed software not for distribution
 ---
-packages:
-  epel_version: '7-11'
-  java_version: '1.8.0'
-  confluent_version: '5.1'
-  minor_release: '2-1'
-  # kafka_version isn't used under confluent, here mainly to match apache
-  kafka_version: '2.1'
-  scala_version: '2.11'
+confluent:
+  packages:
+    epel_version: '7-11'
+    java_version: '1.8.0'
+    confluent_version: '5.1'
+    minor_release: '0'
+    scala_version: '2.11'
+    # confluent_version: '5.2'
+    # minor_release: '1'
+    # scala_version: '2.12'
+    # kafka_version isn't used under confluent, here mainly to match apache
+    kafka_version: '2.1'
 confluent_os_releasever: '7'
 confluent_public_key: "https://packages.confluent.io/rpm/{{ packages.confluent_version }}/archive.key"
 # setting this to no installs the enterprise platform

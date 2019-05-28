@@ -1,3 +1,6 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
 # configuration variables for zookeeper services
 zookeeper:
   apache:
@@ -5,14 +8,14 @@ zookeeper:
     group: kafka
     service_name: apache-zookeeper
     systemd_override: /etc/systemd/system/apache-zookeeper.service.d
-    config_file: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/zookeeper.properties"
+    config_file: "{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/config/zookeeper.properties"
   confluent:
-    user: cp-kafka
-    group: confluent
+    user: "{{ (got_root | default('yes')) | ternary('cp-kafka', ansible_user) }}"
+    group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
     service_name: confluent-zookeeper
     systemd_override: /etc/systemd/system/confluent-zookeeper.service.d
-    config_file: /etc/kafka/zookeeper.properties
-  user_service: /usr/local/bin
+    config_file: "{{ (got_root | default('yes')) | ternary('/etc/kafka/zookeeper.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/kafka/zookeeper.properties')) }}"
+  user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
   config:
     maxClientCnxns: 0
     initLimit: 5
@@ -20,10 +23,11 @@ zookeeper:
     tickTime: 2000
     autopurge_snapRetainCount: 10
     autopurge_purgeInterval: 1
-    dataDir: /var/lib/zookeeper
+    dataDir: "{{ zookeeper_data_dir | default('/var/lib/zookeeper') }}"
     # this needs to be quoted as a string for concatenation purposes
-    # if this gets changed it all needs to be changed under kafka defaults
     port: '2181'
+    peers: '2888'
+    leaders: '3888'
   environment:
     KAFKA_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g -Xms{{ jvm_heap_mem }}g"
-    LOG_DIR: /var/log/kafka
+    LOG_DIR: "{{ (got_root | default('yes')) | ternary('/var/log/kafka', confluent_root + '/var/log/kafka')}}"

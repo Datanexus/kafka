@@ -6,7 +6,8 @@
 - name: reload systemd
   command: systemctl daemon-reload
   become: yes
-  when: 
+  when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '>=')
     
@@ -16,7 +17,8 @@
     name: "{{ broker_service_name }}"
     state: restarted
   become: yes
-  when: 
+  when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '>=')
 
@@ -26,10 +28,17 @@
     name: "{{ broker_service_name }}"
     state: restarted
   become: yes
-  when: 
+  when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '<')
-        
+
+- name: user broker
+  listen: "restart broker"
+  command: "{{ kafka.user_service }}/broker restart"
+  when:
+    - not got_root
+    
 - name: pause
   listen: "restart broker"
   pause:

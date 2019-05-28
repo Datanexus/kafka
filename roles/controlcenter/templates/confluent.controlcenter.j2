@@ -1,36 +1,65 @@
-#!/usr/bin/env sh
+#!/bin/bash
+#
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
 # Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tconfluent-control-center [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ control.center.user }} {{ control.center.user_service }}/confluent-control-center [ start | stop | restart ]\\n"
+	printf "Usage:\\t[ sudo -H -u {{ control.center.user }} ] {{ control.center.user_service }}/confluent-control-center [ start | stop | restart ]\\n"
 	exit 0
 fi
 
-DATE=`which date`
+# source function library
+. /etc/init.d/functions
 
-if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
+fi
+
+PID_FILE={{ (got_root | default('yes')) | ternary('/var/run/' + control.center.service_name + '.pid', (confluent_root + '/var/run/' + control.center.service_name + '.pid')) }}
+
+start() {
+  if [ -x `which logger` ]; then
+    logger -s -t {{ control.center.service_name }} 'starting service...' &>> {{ control.center.config.logDir }}/control-center.log
+  fi
   {% for key, value in control.center.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> {{ control.center.config.logDir }}/control-center.log 2>&1 &
-elif [ "$1" = "stop" ] ; then
-  pid=`/usr/bin/jcmd | grep 'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1`
-  if [[ ${pid} ]] && [[ -n "$(ps -p ${pid} -o pid=)" ]]; then
-      printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
-     /usr/bin/kill $pid
-  fi  
-elif [ "$1" = "restart" ] ; then
-  pid=`/usr/bin/jcmd | grep  'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1`
-  if [[ ${pid} ]] && [[ -n "$(ps -p ${pid} -o pid=)" ]]; then
-      printf "[%s %s] INFO Stopping {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
-     /usr/bin/kill $pid
+  nohup {{ controlcenter_path }}/control-center-start {{ control.center.config_file }} >> {{ control.center.config.logDir }}/control-center.log 2>&1 &
+  sleep 3
+  ${JCMD} | grep 'io.confluent.controlcenter.ControlCenter {{ control.center.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+}
+
+stop() {
+  if [[ -s "${PID_FILE}" ]]; then
+    if [ -x `which logger` ]; then
+      logger -s -t {{ control.center.service_name }} 'stopping service...' &>> {{ control.center.config.logDir }}/control-center.log
+    fi
+    killproc -p ${PID_FILE}
+    sleep 3
   fi
-	printf "[%s %s] INFO Starting {{ control.center.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ control.center.config.logDir }}/control-center.log
-  {% for key, value in control.center.environment.items() -%}
-  {{ " " ~ key  }}="{{ value }}"
-  {%- endfor %}
-  /usr/bin/nohup /usr/bin/control-center-start {{ control.center.config_file }} >> {{ control.center.config.logDir }}/control-center.log 2>&1 &
-fi
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p ${PID_FILE} java
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|status}"
+    exit 1
+esac
+
+exit $?

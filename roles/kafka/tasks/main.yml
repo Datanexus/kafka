@@ -3,8 +3,8 @@
 #
 #
 ---
+# this play needs to be first to handle variable expansion
 - import_tasks: tune.yml
-
 # this is a application specific preflight run after the platform preflight
 - import_tasks: preflight.yml
 
@@ -22,6 +22,9 @@
 - set_fact: 
     broker_config_file: "{{ (apache_kafka) | ternary(kafka.apache.config_file, kafka.confluent.config_file) }}"
 
+- set_fact: 
+    broker_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+    
 - block:
 
   - name: KAFKA OVERLAY (BROKER) | enabling topic deletion for {{ broker_service_name }}
@@ -105,20 +108,20 @@
     when: not((kafka.config.socket_request_max_bytes is undefined) or (kafka.config.socket_request_max_bytes is none) or (kafka.config.socket_request_max_bytes | trim == ''))
     notify: restart broker
   
-  - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka_log_dir | default(kafka.config.logDir) }} exists and has the correct permissions for {{ broker_service_name }}
+  - name: KAFKA OVERLAY (BROKER) | ensuring {{kafka.config.logDir }} exists and has the correct permissions for {{ broker_service_name }}
     file:
       path: "{{ item }}"
       owner: "{{ broker_user }}"
       group: "{{ broker_group }}"
       state: directory
       mode: 0750
-    with_items: "{{ kafka_log_dir | default(kafka.config.logDir) }}"
-  
-  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} log directories
+    with_items: "{{ kafka.config.logDir }}"
+    
+  - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} log directories as {{ kafka.config.logDir | join(',') }}
     lineinfile:
       path: "{{ broker_config_file }}"
       regexp: '^log.dirs='
-      line: "log.dirs={{ kafka_log_dir | default(kafka.config.logDir) | join(',') }}"
+      line: "log.dirs={{ kafka.config.logDir | join(',') }}"
     notify: restart broker
 
   - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} default number of partitions
@@ -211,35 +214,38 @@
       - groups['controlcenter'] | length > 0
     notify: restart broker
   
-  # these lines set the java path for kafka
-  - set_fact:
-      apache_lib_path: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/libs"
-  
-  - set_fact: 
-      java_lib_dir: "{{ (apache_kafka) | ternary(apache_lib_path, '/usr/share/java/kafka') }}"
-      
-  - name: KAFKA OVERLAY (BROKER) | installing cruise control metrics reporter to {{ java_lib_dir }}
-    copy:
-      src: "{{ key_path }}/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
-      dest: "{{ java_lib_dir }}"
-      owner: "{{ broker_user }}"
-      group: "{{ broker_group }}"
-      mode: 0644
-    when:
-      - groups['cruisecontrol'] is defined
-      - groups['cruisecontrol'] | length > 0
+  # cruise control specific
+  # currently imcompatible with non-root install
+  - block:
     
-  - name: KAFKA OVERLAY (BROKER) | enabling cruise control metrics for {{ broker_service_name }}
-    lineinfile:
-      path: "{{ broker_config_file }}"
-      regexp: '^metric.reporters='
-      line: "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
-      insertafter: '^#metric.reporters='
+    # these lines set the java path for kafka
+    - set_fact:
+        apache_lib_path: "{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/libs"
+  
+    - set_fact: 
+        java_lib_dir: "{{ (apache_kafka) | ternary(apache_lib_path, '/usr/share/java/kafka') }}"
+      
+    - name: KAFKA OVERLAY (BROKER) | installing cruise control metrics reporter to {{ java_lib_dir }}
+      copy:
+        src: "{{ key_path }}/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
+        dest: "{{ java_lib_dir }}"
+        owner: "{{ broker_user }}"
+        group: "{{ broker_group }}"
+        mode: 0644
+    
+    - name: KAFKA OVERLAY (BROKER) | enabling cruise control metrics for {{ broker_service_name }}
+      lineinfile:
+        path: "{{ broker_config_file }}"
+        regexp: '^metric.reporters='
+        line: "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
+        insertafter: '^#metric.reporters='
+      notify: restart broker
+    
     when:
       - groups['cruisecontrol'] is defined
       - groups['cruisecontrol'] | length > 0
-    notify: restart broker
-  
+      - got_root | default('yes')
+      
   # cap number of brokers in config at 5
   - name: KAFKA OVERLAY (BROKER) | enabling and configuring control center metrics bootstrap servers for {{ broker_service_name }}
     lineinfile:
@@ -423,8 +429,8 @@
   - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka.user_service }} exists
     file:
       path: "{{ kafka.user_service }}"
-      owner: root
-      group: root
+      owner: "{{ broker_user }}"
+      group: "{{ broker_group }}"
       state: directory
       mode: 0755
   
@@ -438,22 +444,32 @@
       mode: 0755
       owner: "{{ broker_user }}"
       group: "{{ broker_group }}"
+  
+  # this is a little odd because we either need to be root or the broker_user
+  - name: KAFKA OVERLAY (BROKER) | ensuring {{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }} exists
+    file:
+      path: "{{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }}"
+      owner: "{{ (got_root | default('yes')) | ternary('root', broker_user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('root', broker_user) }}"
+      state: directory
+      mode: 0755
       
-  become: yes
+  - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka.environment.LOG_DIR }} exists
+    file:
+      path: "{{ kafka.environment.LOG_DIR }}"
+      owner: "{{ broker_user }}"
+      group: "{{ broker_group }}"
+      state: directory
+      mode: 0755
+  
+  # the thinking here is that these files are either restricted or not and that drives our escalation  
+  become: "{{ got_root | default('yes') }}"
   
 - block:
-  
+      
   # apache block
   - block:
     
-    - name: KAFKA OVERLAY (BROKER) | ensuring {{ kafka.environment.LOG_DIR }} exists
-      file:
-        path: "{{ kafka.environment.LOG_DIR }}"
-        owner: "{{ broker_user }}"
-        group: "{{ broker_group }}"
-        state: directory
-        mode: 0755
-        
     - name: KAFKA OVERLAY (BROKER) | installing systemd {{ broker_service_name }} script
       template:
         src: apache-kafka.service.j2
@@ -533,4 +549,6 @@
       - ansible_distribution_version is version_compare('7', '<')
       
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when:
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

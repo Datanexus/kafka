@@ -13,18 +13,19 @@ control:
         hard:
           config:
             nofile: 16384
-    user: cp-control-center
-    group: confluent
-    config_file: /etc/confluent-control-center/control-center-production.properties
+    user: "{{ (got_root | default('yes')) | ternary('cp-control-center', ansible_user) }}"
+    group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
+    config_file: "{{ (got_root | default('yes')) | ternary('/etc/confluent-control-center/control-center-production.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/confluent-control-center/control-center-production.properties')) }}"
     service_name: confluent-control-center
     systemd_override: /etc/systemd/system/confluent-control-center.service.d
-    user_service: /usr/local/bin
+    user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
     environment:
       CONTROL_CENTER_HEAP_OPTS: "-Xmx{{ jvm_heap_mem }}g"
     config:
-      logDir: /var/log/confluent/control-center
+      ui: '9029'
+      logDir: "{{ (got_root | default('yes')) | ternary('/var/log/confluent/control-center', confluent_root + '/var/log/confluent/control-center')}}"
       confluent.controlcenter.streams.num.stream.threads: 8
-      confluent_controlcenter_data_dir: /var/lib/confluent/control-center
-      confluent_license: /etc/confluent-control-center/license
+      confluent_controlcenter_data_dir: "{{ controlcenter_data_dir | default('/var/lib/confluent/control-center') }}"
+      confluent_license: "{{ (got_root | default('yes')) | ternary('/etc/confluent-control-center/license', confluent_root + '/etc/confluent-control-center/license')}}"
       confluent.controlcenter.streams.ssl.endpoint.identification.algorithm: ""
       confluent.controlcenter.rest.ssl.endpoint.identification.algorithm: ""

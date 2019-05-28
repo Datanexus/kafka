@@ -12,8 +12,8 @@
     rules:
       # ReST connector
       - proto: tcp
-        from_port: "{{ kafka.rest.config.rest_port }}"
-        to_port: "{{ kafka.rest.config.rest_port }}"
+        from_port: "{{ kafkarest.config.rest_port }}"
+        to_port: "{{ kafkarest.config.rest_port }}"
         cidr_ip: "{{ external_subnet }}"
     rules_egress:
       # Allow all outbound

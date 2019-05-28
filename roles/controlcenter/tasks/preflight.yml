@@ -1,4 +1,5 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # confluent control center preflight
 ---
@@ -39,4 +40,4 @@
     when: dn_hard_nofile is defined
 
   become: yes
-  
+  when: got_root | default('yes')

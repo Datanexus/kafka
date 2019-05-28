@@ -7,6 +7,7 @@
   command: systemctl daemon-reload
   become: yes
   when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '>=')
   
@@ -16,7 +17,8 @@
     name: "{{ control.center.service_name }}"
     state: restarted
   become: yes
-  when: 
+  when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '>=')
       
@@ -26,6 +28,13 @@
     name: "{{ control.center.service_name }}"
     state: restarted
   become: yes
-  when: 
+  when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - ansible_distribution_version is version_compare('7', '<')
+
+- name: user controlcenter
+  listen: "restart controlcenter"
+  command: "{{ control.center.user_service }}/confluent-control-center restart"
+  when:
+    - not got_root

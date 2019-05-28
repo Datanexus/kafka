@@ -1,30 +1,64 @@
-#!/usr/bin/env sh
+#!/bin/bash
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
 # Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tconfluent-kafka-rest [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ kafkarest.user }} {{ kafkarest.user_service }}/confluent-kafka-rest [ start | stop | restart ]\\n"
+	printf "Usage:\\t[ sudo -H -u {{ kafkarest.user }} ] {{ kafkarest.user_service }}/confluent-kafka-rest [ start | stop | restart | status ]\\n"
 	exit 0
 fi
 
-DATE=`which date`
+# source function library
+. /etc/init.d/functions
 
-if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
-  {% for key, value in kafkarest.environment.items() -%}
-  {{ " " ~ key }}="{{ value }}"
-  {%- endfor %}
-  /usr/bin/nohup /usr/bin/kafka-rest-start {{ kafkarest.config_file }} >> {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log 2>&1 &
-elif [ "$1" = "stop" ] ; then
-	printf "[%s %s] INFO Stopping {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
-	/usr/bin/kafka-rest-stop
-elif [ "$1" = "restart" ] ; then
-	printf "[%s %s] INFO Stopping {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
-	/usr/bin/kafka-rest-stop
-	printf "[%s %s] INFO Starting {{ kafkarest.service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log
-  {% for key, value in kafkarest.environment.items() -%}
-  {{ " " ~ key }}="{{ value }}"
-  {%- endfor %}
-  /usr/bin/nohup /usr/bin/kafka-rest-start {{ kafkarest.config_file }} >> {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log 2>&1 &
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
 fi
+
+PID_FILE={{ (got_root | default('yes')) | ternary('/var/run/' +  kafkarest.service_name + '.pid', (confluent_root + '/var/run/' +  kafkarest.service_name + '.pid')) }}
+
+start() {
+  if [ -x `which logger` ]; then
+    logger -s -t {{ kafkarest.service_name }} 'starting service...' &>> {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log    
+  fi
+  {% for key, value in kafkarest.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  nohup {{ rest_path }}/kafka-rest-start {{ kafkarest.config_file }} >> {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log 2>&1 &
+  sleep 3
+  ${JCMD} | grep 'io.confluent.kafkarest.KafkaRestMain {{ kafkarest.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+}
+
+stop() {
+  if [[ -s "${PID_FILE}" ]]; then
+    if [ -x `which logger` ]; then
+      logger -s -t {{ kafkarest.service_name }} 'stopping service...' &>> {{ kafkarest.environment.LOG_DIR }}/kafka-rest.log    
+    fi
+    killproc -p ${PID_FILE}
+    sleep 3
+  fi
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p ${PID_FILE} java
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|status}"
+    exit 1
+esac
+
+exit $?

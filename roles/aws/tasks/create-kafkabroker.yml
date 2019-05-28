@@ -12,8 +12,8 @@
     rules:
       # plaintext
       - proto: tcp
-        from_port: "{{ kafka.broker.config.plaintext }}"
-        to_port: "{{ kafka.broker.config.plaintext }}"
+        from_port: "{{ kafka.config.broker_port }}"
+        to_port: "{{ kafka.config.broker_port }}"
         cidr_ip: "{{ external_subnet }}"    
     rules_egress:
       # Allow all outbound

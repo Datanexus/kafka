@@ -11,7 +11,7 @@ elif [[ $# -ge 2 && "$1" = "-b" ]] ; then
    BROKER_HOSTS=$2
    shift && shift
 elif [ $# -eq 1 ]; then
-  BROKER_HOSTS={{ groups['kafka_public'] | join(':9092,') }}:{{ kafka.config.broker_port }}
+  BROKER_HOSTS={{ groups['kafka_public'][:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}
 fi
 
 # we want to verify the topic exists before we consume it
