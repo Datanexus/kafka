@@ -27,7 +27,7 @@ start() {
   {% for key, value in schema.registry.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  daemon --pidfile ${PID_FILE} --user {{ schema.registry.user }} /usr/bin/schema-registry-start {{ schema.registry.config_file }} >> {{ schema.registry.config.log_dir }}/schema-registry.log 2>&1 &
+  daemon --pidfile ${PID_FILE} --user {{ schema.registry.user }} /usr/bin/schema-registry-start -daemon {{ schema.registry.config_file }} >> {{ schema.registry.config.log_dir }}/schema-registry.log 2>&1
   sleep 3
   ${JCMD} | grep 'io.confluent.kafka.schemaregistry.rest.SchemaRegistryMain {{ schema.registry.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }

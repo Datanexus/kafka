@@ -1,30 +1,64 @@
-#!/usr/bin/env sh
+#!/bin/bash
+#
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
 # Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tbroker [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ broker_user }} {{ kafka.user_service }}/broker [ start | stop | restart ]\\n"
+	printf "Usage:\\t[ sudo -H -u {{ broker_user }} ] {{ kafka.user_service }}/broker [ start | stop | restart | status ]\\n"
 	exit 0
 fi
+# source function library
+. /etc/init.d/functions
 
-DATE=`which date`
-
-if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ broker_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafka.environment.LOG_DIR }}/server.log
-  {% for key, value in kafka.environment.items() -%}
-  {{ " " ~ key }}="{{ value }}"
-  {%- endfor %}
-  /usr/bin/nohup /usr/bin/kafka-server-start {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
-elif [ "$1" = "stop" ] ; then
-	printf "[%s %s] INFO Stopping {{ broker_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafka.environment.LOG_DIR }}/server.log
-	/usr/bin/kafka-server-stop
-elif [ "$1" = "restart" ] ; then
-	printf "[%s %s] INFO Stopping {{ broker_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafka.environment.LOG_DIR }}/server.log
-	/usr/bin/kafka-server-stop
-	printf "[%s %s] INFO Starting {{ broker_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ kafka.environment.LOG_DIR }}/server.log
-  {% for key, value in kafka.environment.items() -%}
-  {{ " " ~ key }}="{{ value }}"
-  {%- endfor %}
-  /usr/bin/nohup /usr/bin/kafka-server-start {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
 fi
+
+PID_FILE={{ (got_root | default('yes')) | ternary('/var/run/' + broker_service_name + '.pid', (confluent_root + '/var/run/' + broker_service_name + '.pid')) }}
+
+start() {
+  if [ -x `which logger` ]; then
+    logger -s -t {{ broker_service_name }} 'starting service...' &>> {{ kafka.environment.LOG_DIR }}/server.log
+  fi
+  {% for key, value in kafka.environment.items() -%}
+  {{ " " ~ key }}="{{ value }}"
+  {%- endfor %}
+  daemon --pidfile ${PID_FILE} {{ broker_path }}/kafka-server-start -daemon {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1  
+  sleep 3
+  ${JCMD} | grep 'io.confluent.support.metrics.SupportedKafka {{ broker_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+}
+
+stop() {
+  if [[ -s "${PID_FILE}" ]]; then
+    if [ -x `which logger` ]; then
+      logger -s -t {{ broker_service_name }} 'stopping service...' &>> {{ kafka.environment.LOG_DIR }}/server.log
+    fi
+    killproc -p ${PID_FILE}
+    sleep 3
+  fi
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p ${PID_FILE} java
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|status}"
+    exit 1
+esac
+
+exit $?

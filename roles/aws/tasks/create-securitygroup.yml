@@ -2,6 +2,9 @@
 #
 # create AWS confluent platform componentns security group rules
 ---
+# this is only for variable substitution; it has no effect in this play
+-  set_fact: jvm_heap_mem=1
+
 - import_tasks: create-zookeeper.yml
 - import_tasks: create-kafkabroker.yml
 - import_tasks: create-kafkaconnect.yml
@@ -10,7 +13,7 @@
 - import_tasks: create-confluentksql.yml
 - import_tasks: create-confluentcontrolcenter.yml
 - import_tasks: create-cruisecontrol.yml
-  
+
 - name: CONFLUENT OVERLAY | creating confluent kafka connect replicator private external security group
   local_action:
     module: ec2_group

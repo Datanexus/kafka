@@ -11,8 +11,8 @@
     region: "{{ region }}"
     rules:
       - proto: tcp
-        from_port: "{{ connect.distributed.config.listener_port }}"
-        to_port: "{{ connect.distributed.config.listener_port }}"
+        from_port: "{{ connect.distributed.config.rest_port }}"
+        to_port: "{{ connect.distributed.config.rest_port }}"
         cidr_ip: "{{ external_subnet }}"
     rules_egress:
       # Allow all outbound

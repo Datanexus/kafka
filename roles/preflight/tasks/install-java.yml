@@ -29,6 +29,33 @@
 # java-1.8.0-openjdk-devel-1.8.0.212.b04-0.el6_10.x86_64.rpm
 # java-1.8.0-openjdk-headless-1.8.0.212.b04-0.el6_10.x86_64.rpm
 
+
+- name: CONFLUENT OVERLAY | using first java binary in path
+  raw: 'which java'
+  register: java_bin
+  ignore_errors: yes
+
+- block:
+  
+  - name:  CONFLUENT OVERLAY | checking for java-{{ packages.java_version }}.tar.gz
+    stat: path="/tmp/java-{{ packages.java_version }}.tar.gz"
+    register: existing_package
+  
+  - name: CONFLUENT OVERLAY | copying {{ packages.java_version }} from local {{ tenant }} area (this may take some time)
+    copy:
+      src: "{{ tenant_config_path }}/packages/{{ item }}"
+      dest: "/tmp/{{ item }}"
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: 0644
+    with_items:
+      - "java-{{ packages.java_version }}.tar.gz"
+    when:
+      - not existing_package.stat.exists
+      
+  when:
+    - java_bin.failed
+  
 - name: CONFLUENT OVERLAY | installing java {{ packages.java_version }} packages
   package:
     name: "{{ item }}"
@@ -37,3 +64,4 @@
     - "java-{{ packages.java_version }}-openjdk"
     - "java-{{ packages.java_version }}-openjdk-devel"
   become: yes
+  when: got_root | default('yes')

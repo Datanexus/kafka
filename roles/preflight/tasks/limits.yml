@@ -175,4 +175,6 @@
     when: dn_hard_stack is defined
 
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when:
+    - got_root | default('yes')
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

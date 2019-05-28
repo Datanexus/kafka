@@ -4,16 +4,16 @@
 # configuration variables for schema registry services
 schema:
   registry:
-    user: cp-schema-registry
-    group: confluent
-    config_file: /etc/schema-registry/schema-registry.properties
+    user: "{{ (got_root | default('yes')) | ternary('cp-schema-registry', ansible_user) }}"
+    group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
+    config_file: "{{ (got_root | default('yes')) | ternary('/etc/schema-registry/schema-registry.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/schema-registry/schema-registry.properties')) }}"
     service_name: confluent-schema-registry
     systemd_override: /etc/systemd/system/confluent-schema-registry.service.d
-    user_service: /usr/local/bin
+    user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
     config:
       schema_registry_listener_port: '8081'
       kafkastore.topic: _schemas
       kafkastore_ssl_endpoint_identification_algorithm: ""
-      log_dir: /var/log/confluent/schema-registry
+      log_dir: "{{ (got_root | default('yes')) | ternary('/var/log/confluent/schema-registry', confluent_root + '/var/log/confluent/schema-registry')}}"
     environment:
       SCHEMA_REGISTRY_HEAP_OPTS: "-Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"

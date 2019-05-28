@@ -4,9 +4,7 @@
 ---
 # CentOS / Redhat 7
 - block:
-  
-  - import_tasks: install-java.yml
-  
+    
   - name: KAFKA OVERLAY | adding {{ apache.group }} group
     group:
       name: "{{ apache.group }}"

@@ -27,7 +27,7 @@ start() {
   {% for key, value in ksql.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  daemon --pidfile ${PID_FILE} --user {{ ksql.user }} /usr/bin/ksql-server-start {{ ksql.config_file }} >> {{ ksql.config.logs }}/server.log 2>&1 &
+  daemon --pidfile ${PID_FILE} --user {{ ksql.user }} -daemon /usr/bin/ksql-server-start {{ ksql.config_file }} >> {{ ksql.config.logs }}/server.log 2>&1
   sleep 3
   ${JCMD} | grep 'io.confluent.ksql.rest.server.KsqlServerMain {{ ksql.config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }

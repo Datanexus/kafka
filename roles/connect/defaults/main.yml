@@ -2,21 +2,21 @@
 connect:
   distributed:
     apache:
-      config_file: "{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/connect-distributed.properties"
+      config_file: "{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/config/connect-distributed.properties"
       service_name: apache-kafka-connect
       systemd_override: /etc/systemd/system/apache-kafka-connect.service.d
       user: kafka
       group: kafka
     confluent:
-      config_file: /etc/kafka/connect-distributed.properties
+      config_file: "{{ (got_root | default('yes')) | ternary('/etc/kafka/connect-distributed.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/kafka/connect-distributed.properties')) }}"
       service_name: confluent-kafka-connect
       systemd_override: /etc/systemd/system/confluent-kafka-connect.service.d
-      user: cp-kafka-connect
-      group: confluent
-    user_service: /usr/local/bin
+      user: "{{ (got_root | default('yes')) | ternary('cp-kafka-connect', ansible_user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
+    user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
     environment:
       KAFKA_HEAP_OPTS: "-Xms256M -Xmx{{ jvm_heap_mem }}g"
-      LOG_DIR: /var/log/kafka
+      LOG_DIR: "{{ (got_root | default('yes')) | ternary('/var/log/kafka', confluent_root + '/var/log/kafka')}}"
     config:
       rest_port: '8083'
       consumer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor

@@ -12,8 +12,8 @@
     rules:
       # schema registry
       - proto: tcp
-        from_port: "{{ schema.registry.config.listener_port }}"
-        to_port: "{{ schema.registry.config.listener_port }}"
+        from_port: "{{ schema.registry.config.schema_registry_listener_port }}"
+        to_port: "{{ schema.registry.config.schema_registry_listener_port }}"
         cidr_ip: "{{ external_subnet }}" 
     rules_egress:
       # Allow all outbound

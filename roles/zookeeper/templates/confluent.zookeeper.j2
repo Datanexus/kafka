@@ -1,31 +1,65 @@
-#!/bin/sh
+#!/bin/bash
 #
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
 # Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tzookeeper [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ zookeeper_user }} {{ zookeeper.user_service }}/zookeeper [ start | stop | restart ]\\n"
+	printf "Usage:\\t[ sudo -H -u {{ zookeeper_user }} ] {{ zookeeper.user_service }}/zookeeper [ start | stop | restart | status]\\n"
 	exit 0
 fi
 
-DATE=`which date`
+# source function library
+. /etc/init.d/functions
 
-if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ zookeeper_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ zookeeper.environment.LOG_DIR }}/zookeeper.log
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
+fi
+
+PID_FILE={{ (got_root | default('yes')) | ternary('/var/run/' + zookeeper_service_name + '.pid', (confluent_root + '/var/run/' + zookeeper_service_name + '.pid')) }}
+
+start() {
+  if [ -x `which logger` ]; then
+    logger -s -t {{ zookeeper_service_name }} 'starting service...' &>> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log
+  fi
   {% for key, value in zookeeper.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/zookeeper-server-start {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log 2>&1 &
-elif [ "$1" = "stop" ] ; then
-	printf "[%s %s] INFO Stopping {{ zookeeper_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ zookeeper.environment.LOG_DIR }}/zookeeper.log
-	/usr/bin/zookeeper-server-stop {{ zookeeper_config_file }}
-elif [ "$1" = "restart" ] ; then
-	printf "[%s %s] INFO Stopping {{ zookeeper_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ zookeeper.environment.LOG_DIR }}/zookeeper.log
-	/usr/bin/zookeeper-server-stop {{ zookeeper_config_file }}
-	printf "[%s %s] INFO Starting {{ zookeeper_service_name }}...\\n" `${DATE} +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a {{ zookeeper.environment.LOG_DIR }}/zookeeper.log
-  {% for key, value in zookeeper.environment.items() -%}
-  {{ " " ~ key  }}="{{ value }}"
-  {%- endfor %}
-  /usr/bin/nohup /usr/bin/zookeeper-server-start {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log 2>&1 &
-fi
+  daemon --pidfile ${PID_FILE} {{ zookeeper_path }}/zookeeper-server-start -daemon {{ zookeeper_config_file }} >> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log 2>&1
+  sleep 3
+  ${JCMD} | grep 'org.apache.zookeeper.server.quorum.QuorumPeerMain {{ zookeeper_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+}
+
+stop() {
+  if [[ -s "${PID_FILE}" ]]; then
+    if [ -x `which logger` ]; then
+      logger -s -t {{ zookeeper_service_name }} 'stopping service...' &>> {{ zookeeper.environment.LOG_DIR }}/zookeeper.log
+    fi
+    killproc -p ${PID_FILE}
+    sleep 3
+  fi
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p ${PID_FILE} java
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|status}"
+    exit 1
+esac
+
+exit $?

@@ -6,4 +6,4 @@
   command: /usr/bin/yum clean all
   args:
       warn: no
-  become: true
+  become: yes

@@ -1,3 +1,6 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+
 # postflight variables
 postflight:
-  utilsDir: /usr/local/bin
+  utilsDir: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"

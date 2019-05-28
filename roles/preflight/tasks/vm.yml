@@ -74,4 +74,5 @@
       
   become: yes
   when:
+    - got_root | default('yes')
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

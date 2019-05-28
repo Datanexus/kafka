@@ -24,9 +24,7 @@
     register: git_out  
   - import_tasks: install-git.yml
     when: git_out.failed or (git_out.stdout | regex_search('\d+\.\d+\.\d+')) is version_compare(os_packages.git_version, '<')
-    
-  - import_tasks: install-java.yml
-  
+      
   # this is a bit of a hack, but we want files owned by a consistent user/group across the platform
   - name: CRUISE CONTROL OVERLAY | adding {{ cruisecontrol_group }} group
     group:

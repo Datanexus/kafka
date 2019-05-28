@@ -7,6 +7,9 @@
 # this is a application specific preflight run after the platform preflight
 - import_tasks: preflight.yml
 
+- set_fact: 
+    controlcenter_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+    
 - block:
   
   # cap number of brokers in config at 5
@@ -56,7 +59,7 @@
       line: "confluent.controlcenter.id={{ (cluster != 'none') | ternary(cluster,'1') }}"
       insertafter: '^#confluent.controlcenter.id='
     notify: restart controlcenter
-  
+    
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | configuring distributed connect hosts
     lineinfile:
       path: "{{ control.center.config_file }}"
@@ -90,11 +93,20 @@
       -  groups['registry'] | length > 0
     notify: restart controlcenter
   
+  # this is a little odd because we either need to be root or the confluent user
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | ensuring {{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }} exists
+    file:
+      path: "{{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }}"
+      owner: "{{ (got_root | default('yes')) | ternary('root', control.center.user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('root', control.center.group) }}"
+      state: directory
+      mode: 0755
+      
   - name: CONFLUENT OVERLAY (CONTROL CENTER) | ensuring {{ control.center.user_service }} exists
     file:
       path: "{{ control.center.user_service }}"
-      owner: root
-      group: root
+      owner: "{{ control.center.user }}"
+      group: "{{ control.center.group }}"
       state: directory
       mode: 0755
       
@@ -105,8 +117,17 @@
       mode: 0755
       owner: "{{ control.center.user }}"
       group: "{{ control.center.group }}"
+  
+  - name: CONFLUENT OVERLAY (CONTROL CENTER) | ensuring {{ control.center.config.logDir }} exists
+    file:
+      path: "{{ control.center.config.logDir }}"
+      owner: "{{ control.center.user }}"
+      group: "{{ control.center.group }}"
+      state: directory
+      mode: 0755
       
-  become: yes
+  # the thinking here is that these files are either restricted or not and that drives our escalation  
+  become: "{{ got_root | default('yes') }}"
   
 - block:
   
@@ -159,4 +180,6 @@
       - ansible_distribution_version is version_compare('7', '<')
   
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when:
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

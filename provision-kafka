@@ -6,54 +6,54 @@
 ---   
 # note that the tags are not currently used, but are present for future integration into
 # the datanexus infrastructure components  
-- name: KAFKA OVERLAY | discovering {{ cloud }} networking
+- name: KAFKA OVERLAY | preparing {{ cloud }} layer
   tags:
     - confluent
   hosts: localhost
   connection: local
+  # this vars list needs to contain every port across every application and all variable dependencies
   vars_files:
+    - "{{ tenant_config_path }}/config/site.yml"
+    - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
     - "{{ tenant_config_path }}/config/applications/confluent.yml"
-  gather_facts: no
-  tasks:
-    - include_role:
-        name: aws
-        tasks_from: discover-vpc
-      when: cloud == 'aws'
-
-    - include_role:
-        name: azure
-        tasks_from: discover-resourcegroup
-      when: cloud == 'azure'
-
-- name: KAFKA OVERLAY | creating {{ cloud }} security groups
-  tags:
-    - confluent
-  hosts: localhost
-  connection: local
-  gather_facts: no
-  tasks:
-    - include_role:
-        name: aws
-        tasks_from: create-securitygroup
-      when: cloud == 'aws'
-
-- name: KAFKA OVERLAY | applying {{ cloud }} security groups
-  tags:
-    - confluent
-  hosts: localhost
-  connection: local
-  vars_files:
-    - "{{ tenant_config_path }}/config/applications/confluent.yml"
+    - roles/controlcenter/defaults/main.yml
+    - roles/cruisecontrol/defaults/main.yml
+    - roles/zookeeper/defaults/main.yml
+    - roles/kafka/defaults/main.yml
+    - roles/kafkarest/defaults/main.yml
+    - roles/ksql/defaults/main.yml
+    - roles/registry/defaults/main.yml
+    - roles/connect/defaults/main.yml
+    - roles/replicator/defaults/main.yml
   gather_facts: yes
   tasks:
-    - include_role:
-        name: aws
-        tasks_from: apply-securitygroup
+    - block:
+      
+      - include_role:
+          name: aws
+          tasks_from: discover-vpc
+          
+      - include_role:
+          name: aws
+          tasks_from: create-securitygroup
+      
+      - include_role:
+          name: aws
+          tasks_from: apply-securitygroup
+          
       when: cloud == 'aws'
-
-    - include_role:
-        name: azure
-        tasks_from: modify-existing-securitygroup
+    
+    - block:
+      
+      - include_role:
+          name: azure
+          tasks_from: discover-resourcegroup
+          
+      - include_role:
+          name: azure
+          tasks_from: modify-existing-securitygroup
+          
       when: cloud == 'azure'
 
 # complete preflight for all host groups
@@ -126,6 +126,8 @@
     - confluent
   vars_files:
     - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
+    - "{{ tenant_config_path }}/config/site.yml"
     - "{{ tenant_config_path }}/config/applications/zookeeper.yml"
     - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/apache.yml"
@@ -160,8 +162,10 @@
     - confluent
   vars_files:
     - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
     - roles/zookeeper/defaults/main.yml
     - roles/cruisecontrol/defaults/main.yml
+    - "{{ tenant_config_path }}/config/site.yml"
     - "{{ tenant_config_path }}/config/applications/apache.yml"
     - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/kafka.yml"
@@ -176,7 +180,10 @@
     - confluent
   vars_files:
     - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
     - roles/zookeeper/defaults/main.yml
+    - "{{ tenant_config_path }}/config/site.yml"
+    - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/registry.yml"
   tasks:
     - import_role:
@@ -214,6 +221,7 @@
     - roles/apache/defaults/main.yml
     - roles/zookeeper/defaults/main.yml
     - roles/kafka/defaults/main.yml
+    - "{{ tenant_config_path }}/config/site.yml"
     - "{{ tenant_config_path }}/config/applications/cruisecontrol.yml"
     - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/apache.yml"
@@ -230,6 +238,7 @@
   tags:
     - confluent
   vars_files:
+    - "{{ tenant_config_path }}/config/site.yml"
     - roles/apache/defaults/main.yml
     - roles/confluent/defaults/main.yml
     - roles/zookeeper/defaults/main.yml
@@ -239,6 +248,7 @@
     - roles/registry/defaults/main.yml
     - "{{ tenant_config_path }}/config/applications/controlcenter.yml"
     - "{{ tenant_config_path }}/config/os/linux.yml"
+    - "{{ tenant_config_path }}/config/applications/confluent.yml"
   gather_facts: yes
   tasks:
     - import_role:
@@ -250,7 +260,9 @@
     - confluent
   vars_files:
     - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
     - roles/kafka/defaults/main.yml
+    - "{{ tenant_config_path }}/config/site.yml"
     - "{{ tenant_config_path }}/config/applications/apache.yml"
     - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/connect.yml"
@@ -264,6 +276,13 @@
   tags:
     - confluent
   vars_files:
+    - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
+    - roles/zookeeper/defaults/main.yml
+    - roles/kafka/defaults/main.yml
+    - roles/registry/defaults/main.yml
+    - "{{ tenant_config_path }}/config/site.yml"
+    - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/kafkarest.yml"
   gather_facts: yes
   tasks:
@@ -276,7 +295,10 @@
     - confluent
   vars_files:
     - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
     - roles/kafka/defaults/main.yml
+    - "{{ tenant_config_path }}/config/site.yml"
+    - "{{ tenant_config_path }}/config/applications/confluent.yml"
     - "{{ tenant_config_path }}/config/applications/ksql.yml"
   gather_facts: yes
   tasks:
@@ -288,12 +310,14 @@
   tags:
     - confluent
   vars_files:
+    - "{{ tenant_config_path }}/config/site.yml"
     - roles/apache/defaults/main.yml
+    - roles/confluent/defaults/main.yml
     - roles/kafka/defaults/main.yml
+    - "{{ tenant_config_path }}/config/applications/zookeeper.yml"
     - roles/zookeeper/defaults/main.yml
     - "{{ tenant_config_path }}/config/applications/apache.yml"
     - "{{ tenant_config_path }}/config/applications/confluent.yml"
-    - "{{ tenant_config_path }}/config/applications/postflight.yml"
   vars:
       # this is semi clever; application gets set based on each host group
       application: "{{ group_names | first }}"

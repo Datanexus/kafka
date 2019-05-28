@@ -3,9 +3,10 @@
 #
 # main zookeeper configuration routines
 ---
+# these really need to be the first tasks
 - import_tasks: tune.yml
 - import_tasks: interface-facts.yml
-
+  
 - set_fact: 
     zookeeper_user: "{{ (apache_kafka) | ternary(zookeeper.apache.user, zookeeper.confluent.user) }}"
 
@@ -17,12 +18,15 @@
 
 - set_fact: 
     zookeeper_config_file: "{{ (apache_kafka) | ternary(zookeeper.apache.config_file, zookeeper.confluent.config_file) }}"
-      
+
+- set_fact: 
+    zookeeper_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+  
 - block:
     
-  - name: KAFKA OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper_data_dir | default(zookeeper.config.dataDir) }} exists and has the correct permissions for {{ zookeeper_service_name }}
+  - name: KAFKA OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper.config.dataDir }} exists and has the correct permissions for {{ zookeeper_service_name }}
     file:
-      path: "{{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}"
+      path: "{{ zookeeper.config.dataDir }}"
       owner: "{{ zookeeper_user }}"
       group: "{{ zookeeper_group }}"
       state: directory
@@ -32,7 +36,7 @@
     lineinfile:
       path: "{{ zookeeper_config_file }}"
       regexp: '^dataDir='
-      line: "dataDir={{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}"
+      line: "dataDir={{ zookeeper.config.dataDir }}"
     notify: restart zookeeper
   
   - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} on {{ zookeeper_interface_ipv4 }}
@@ -41,7 +45,7 @@
       regexp: '^clientPortAddress='
       line: "clientPortAddress={{ zookeeper_interface_ipv4 }}"
     notify: restart zookeeper
-    
+      
   - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} on {{ zookeeper.config.port }}
     lineinfile:
       path: "{{ zookeeper_config_file }}"
@@ -108,23 +112,23 @@
   - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} myid file
     template:
       src: myid.j2
-      dest: "{{ zookeeper_data_dir | default(zookeeper.config.dataDir) }}/myid"
+      dest: "{{ zookeeper.config.dataDir }}/myid"
       mode: 0644
       owner: "{{ zookeeper_user }}"
       group: "{{ zookeeper_group }}"
     notify: restart zookeeper
-  
+      
   - name: KAFKA OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper.user_service }} exists
     file:
       path: "{{ zookeeper.user_service }}"
-      owner: root
-      group: root
+      owner: "{{ zookeeper_user }}"
+      group: "{{ zookeeper_group }}"
       state: directory
       mode: 0755
-      
+    
   - set_fact: 
       zookeeper_wrapper: "{{ (apache_kafka) | ternary('apache.zookeeper.j2', 'confluent.zookeeper.j2') }}"
-      
+    
   - name: KAFKA OVERLAY (ZOOKEEPER) | installing {{ zookeeper_service_name }} into {{ zookeeper.user_service }}
     template:
       src: "{{ zookeeper_wrapper }}"
@@ -132,20 +136,30 @@
       mode: 0755
       owner: "{{ zookeeper_user }}"
       group: "{{ zookeeper_group }}"
-    
-  become: yes
+  
+  # this is a little odd because we either need to be root or the zookeeper_user
+  - name: KAFKA OVERLAY (ZOOKEEPER) | ensuring {{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }} exists
+    file:
+      path: "{{ (got_root | default('yes')) | ternary('/var/run', (confluent_root + '/var/run')) }}"
+      owner: "{{ (got_root | default('yes')) | ternary('root', zookeeper_user) }}"
+      group: "{{ (got_root | default('yes')) | ternary('root', zookeeper_user) }}"
+      state: directory
+      mode: 0755
+      
+  - name: KAFKA OVERLAY (ZOOKEEPER) | ensuring {{ zookeeper.environment.LOG_DIR }} exists
+    file:
+      path: "{{ zookeeper.environment.LOG_DIR }}"
+      owner: "{{ zookeeper_user }}"
+      group: "{{ zookeeper_group }}"
+      state: directory
+      mode: 0755
+  
+  # the thinking here is that these files are either restricted or not and that drives our escalation  
+  become: "{{ got_root | default('yes') }}"
   
 - block:
   
   - block:
-    
-    - name: KAFKA OVERLAY (BROKER) | ensuring {{ zookeeper.environment.LOG_DIR }} exists
-      file:
-        path: "{{ zookeeper.environment.LOG_DIR }}"
-        owner: "{{ zookeeper_user }}"
-        group: "{{ zookeeper_group }}"
-        state: directory
-        mode: 0755
     
     - name: KAFKA OVERLAY (ZOOKEEPER) | installing systemd {{ zookeeper_service_name }} script
       template:
@@ -156,7 +170,7 @@
         group: "{{ zookeeper_group }}"
       notify:
         - reload systemd
-      when: 
+      when:
         - ansible_distribution_version is version_compare('7', '>=')
     
     - name: KAFKA OVERLAY (BROKER) | installing sysvinit {{ zookeeper_service_name }} script
@@ -166,7 +180,7 @@
         mode: 0755
         owner: root
         group: root
-      when: 
+      when:
         - ansible_distribution_version is version_compare('7', '<')
         
     when:
@@ -183,7 +197,7 @@
       group: "{{ zookeeper_group }}"
       state: directory
       mode: 0750
-    when: 
+    when:
       - ansible_distribution_version is version_compare('7', '>=')
       
   - name: KAFKA OVERLAY (ZOOKEEPER) | installing {{ zookeeper_service_name }} environment override
@@ -196,14 +210,14 @@
     notify:
       - reload systemd
       - restart zookeeper
-    when: 
+    when:
       - ansible_distribution_version is version_compare('7', '>=')
   
   - name: KAFKA OVERLAY (ZOOKEEPER) | enabling {{ zookeeper_service_name }} by systemd
     systemd:
       name: "{{ zookeeper_service_name }}"
       enabled: yes
-    when: 
+    when:
       - ansible_distribution_version is version_compare('7', '>=')
   
   - name: KAFKA OVERLAY (ZOOKEEPER) | installing sysvinit {{ zookeeper_service_name }} script
@@ -213,7 +227,7 @@
       mode: 0755
       owner: root
       group: root
-    when: 
+    when:
       - ansible_distribution_version is version_compare('7', '<')
       
   # the restart handler should take care of starting the service
@@ -225,4 +239,6 @@
       - ansible_distribution_version is version_compare('7', '<')
       
   become: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when: 
+    - got_root | default('yes') 
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
