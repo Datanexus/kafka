@@ -5,10 +5,10 @@ kafka:
       config_file: /etc/security/limits.conf
       soft:
         config:
-          nofile: 32768
+          nofile: 100000
       hard:
         config:
-          nofile: 32768
+          nofile: 100000
   apache:
     user: kafka
     group: kafka
@@ -31,7 +31,8 @@ kafka:
     # uncomment the following line to turn on JMX on port 10101
     # JMX_PORT: 10101
   config:
-    topic_deletion: True
+    # kafka defaults to topic deletion 'true', but we apply any tenant settings if defined
+    topic_deletion: "{{ (tenant_topic_deletion is defined | default('yes')) | ternary(tenant_topic_deletion, none) }}"
     confluent_metrics: False
     # this needs to be quoted as a string for concatenation purposes
     # if this gets changed it needs to be changed under connect defaults
@@ -49,10 +50,14 @@ kafka:
     # default 1
     transaction_state_log_replication_factor:
     transaction_state_log_min_isr: 2
-    log_retention_hours: 168
-    log_segment_bytes: 1073741824
-    log_retention_check_interval_ms: 300000
-    zookeeper_connection_timeout_ms: 6000
+    log_retention_hours: "{{ tenant_log_retention_hours | default(168) }}"
+    # this logic is a little more complicated because log.retention.bytes is not enabled by default
+    log_retention_bytes: "{{ (tenant_log_retention_bytes is defined | default('yes')) | ternary(tenant_log_retention_bytes, none) }}"
+    log_retention_ms: "{{ (tenant_log_retention_ms is defined | default('yes')) | ternary(tenant_log_retention_ms, none) }}"
+    log_segment_bytes: "{{ tenant_log_segment_bytes | default(1073741824) }}"
+    log_retention_check_interval_ms: "{{ tenant_log_retention_check_interval_ms | default(300000) }}"
+    log_cleaner_delete_retention_ms: "{{ (tenant_log_cleaner_delete_retention_ms is defined | default('yes')) | ternary(tenant_log_cleaner_delete_retention_ms, none) }}"
+    zookeeper_connection_timeout_ms: "{{ tenant_zookeeper_timeout_ms | default(6000) }}"
     metric_reporters: io.confluent.metrics.reporter.ConfluentMetricsReporter
     confluent_metrics_reporter_topic_replicas: 3
     # default 0

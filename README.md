@@ -182,7 +182,7 @@ Deploy the destination cluster:
 Deploy the connect replicator (in this case the replicator is not part of any other cluster):
       
     ./deploy hostsfile.replication datanexus demo aws us-east-1 development none replication
-      
+    
 ### drift
 To check for configuration drift from the baseline, the ansible dry run output can be piped through the check wrapper:
 

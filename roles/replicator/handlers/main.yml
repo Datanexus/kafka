@@ -1,13 +1,24 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
-# handlers used during confluent connect installation
+# handlers used during confluent replicator installation
 ---
-- name: stop replicator
+- name: user replicator
+  listen: "stop replicator"
   command: /usr/local/bin/kafka-connect-replicator stop
   become: yes
-  become_user: "{{ replicator.user }}"
+  when:
+    - got_root | default('yes')
 
-- name: start replicator
+- name: user replicator
+  listen: "start replicator"
   command: /usr/local/bin/kafka-connect-replicator start
   become: yes
-  become_user: "{{ replicator.user }}"
+  when:
+    - got_root | default('yes')
+    
+- name: user replicator
+  listen: "restart replicator"
+  command: "{{ replicator.user_service }}/kafka-connect-replicator restart"
+  when:
+    - not got_root

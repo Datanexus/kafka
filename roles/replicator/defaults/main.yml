@@ -1,20 +1,22 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
 # configuration variables for confluent kafka connect replicator
 replicator:
+  user:  "{{ (got_root | default('yes')) | ternary('cp-kafka-connect', ansible_user) }}"
+  group: "{{ (got_root | default('yes')) | ternary('confluent', ansible_user) }}"
+  confluent_license: "{{ (got_root | default('yes')) | ternary('/etc/kafka-connect-replicator/license', confluent_root + '/etc/kafka-connect-replicator/license')}}"
   distributed:
     service_name: kafka-connect-replicator
-    config_file: /etc/kafka-connect-replicator/replicator-connect-distributed.properties
+    systemd_override: /etc/systemd/system/kafka-connect-replicator.service.d
+    config_file: "{{ (got_root | default('yes')) | ternary('/etc/kafka-connect-replicator/replicator-connect-distributed.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/kafka-connect-replicator/replicator-connect-distributed.properties')) }}"
     config:
       rest_port: '8083'
       tasks: 4
-  user: cp-kafka-connect
-  group: confluent
-  config_dir: /etc/kafka-connect-replicator
-  config_file: /etc/kafka-connect-replicator/replicator.properties
-  systemd_override: /etc/systemd/system/kafka-connect-replicator.service.d
-  user_service: /usr/local/bin
+      logDir: "{{ (got_root | default('yes')) | ternary('/var/log/kafka', confluent_root + '/var/log/kafka')}}"
+  standalone:  
+    config_file: "{{ (got_root | default('yes')) | ternary('/etc/kafka-connect-replicator/replicator.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/kafka-connect-replicator/replicator.properties')) }}"
+  user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
   environment:
     KAFKA_HEAP_OPTS: "-Xms256M -Xmx2G"
-  config:
-    confluent_license: /etc/kafka-connect-replicator/license
-    consumer: consumer.properties
-    producer: producer.properties
+  

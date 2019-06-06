@@ -27,7 +27,7 @@
     
 - block:
 
-  - name: KAFKA OVERLAY (BROKER) | enabling topic deletion for {{ broker_service_name }}
+  - name: KAFKA OVERLAY (BROKER) | setting topic deletion for {{ broker_service_name }} to {{ kafka.config.topic_deletion }}
     lineinfile:
       path: "{{ broker_config_file }}"
       regexp: '^delete.topic.enable='
@@ -163,8 +163,8 @@
       line: "transaction.state.log.min.isr={{ kafka.config.transaction_state_log_min_isr }}"
     when: not((kafka.config.transaction_state_log_min_isr is undefined) or (kafka.config.transaction_state_log_min_isr is none) or (kafka.config.transaction_state_log_min_isr | trim == ''))  
     notify: restart broker
-
-  - name: KAFKA OVERLAY (BROKER) | configuring minimum age for {{ broker_service_name }} log deletion
+ 
+  - name: KAFKA OVERLAY (BROKER) | configuring minimum age in hours for {{ broker_service_name }} log deletion
     lineinfile:
       path: "{{ broker_config_file }}"
       regexp: '^log.retention.hours='
@@ -172,6 +172,24 @@
     when: not((kafka.config.log_retention_hours is undefined) or (kafka.config.log_retention_hours is none) or (kafka.config.log_retention_hours | trim == ''))  
     notify: restart broker
  
+  - name: KAFKA OVERLAY (BROKER) | configuring minimum size for {{ broker_service_name }} log deletion
+    lineinfile:
+      path: "{{ broker_config_file }}"
+      regexp: '^log.retention.bytes='
+      line: "log.retention.bytes={{ kafka.config.log_retention_bytes }}"
+      insertafter: '^#log.retention.bytes='
+    when: not((kafka.config.log_retention_bytes is undefined) or (kafka.config.log_retention_bytes is none) or (kafka.config.log_retention_bytes | trim == ''))  
+    notify: restart broker
+  
+  - name: KAFKA OVERLAY (BROKER) | configuring minimum age in milliseconds for {{ broker_service_name }} log deletion
+    lineinfile:
+      path: "{{ broker_config_file }}"
+      regexp: '^log.retention.ms='
+      line: "log.retention.ms={{ kafka.config.log_retention_ms }}"
+      insertafter: '^log.retention.hours='
+    when: not((kafka.config.log_retention_ms is undefined) or (kafka.config.log_retention_ms is none) or (kafka.config.log_retention_ms | trim == ''))  
+    notify: restart broker
+         
   - name: KAFKA OVERLAY (BROKER) | configuring maximum size of {{ broker_service_name }} log segment files
     lineinfile:
       path: "{{ broker_config_file }}"
@@ -210,12 +228,12 @@
       line: "metric.reporters={{ kafka.config.metric_reporters }}"
       insertafter: '^#metric.reporters='
     when:
-      - groups['controlcenter'] is defined
-      - groups['controlcenter'] | length > 0
+      - groups['controlcenter'] is defined or groups['controlcenter_broker'] is defined
+      # - groups['controlcenter'] | length > 0 or groups['controlcenter_broker'] | length > 0
     notify: restart broker
   
   # cruise control specific
-  # currently imcompatible with non-root install
+  # currently incompatible with non-root install
   - block:
     
     # these lines set the java path for kafka
@@ -245,17 +263,19 @@
       - groups['cruisecontrol'] is defined
       - groups['cruisecontrol'] | length > 0
       - got_root | default('yes')
-      
+    
+  # if we have specific control center brokers defined use those, else use the kafka_brokers
   # cap number of brokers in config at 5
   - name: KAFKA OVERLAY (BROKER) | enabling and configuring control center metrics bootstrap servers for {{ broker_service_name }}
     lineinfile:
       path: "{{ broker_config_file }}"
       regexp: '^confluent.metrics.reporter.bootstrap.servers='
-      line: "confluent.metrics.reporter.bootstrap.servers={{ groups['kafka_public'][:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      # line: "confluent.metrics.reporter.bootstrap.servers={{ controlcenter_brokers[:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      line: "confluent.metrics.reporter.bootstrap.servers={{ (groups['controlcenter_broker_public'] | default(groups['kafka_public']))[:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#confluent.metrics.reporter.bootstrap.servers='
     when:
-      - groups['controlcenter'] is defined
-      - groups['controlcenter'] | length > 0
+      - groups['controlcenter'] is defined or groups['controlcenter_broker'] is defined
+      # - groups['controlcenter'] | length > 0 or groups['controlcenter_broker'] | length > 0
     notify: restart broker
   
   # cap number of brokers in config at 5
@@ -278,8 +298,8 @@
       insertafter: '^#confluent.metrics.reporter.topic.replicas='
     when:
       - not((kafka.config.confluent_metrics_reporter_topic_replicas is undefined) or (kafka.config.confluent_metrics_reporter_topic_replicas is none) or (kafka.config.confluent_metrics_reporter_topic_replicas | trim == ''))
-      - groups['controlcenter'] is defined
-      - groups['controlcenter'] | length > 0
+      - groups['controlcenter'] is defined or groups['controlcenter_broker'] is defined
+      # - groups['controlcenter'] | length > 0 or groups['controlcenter_broker'] | length > 0
       - kafka.config.confluent_metrics_reporter_topic_replicas > 1
     notify: restart broker
 
@@ -400,6 +420,14 @@
       regexp: '^log.cleaner.dedupe.buffer.size='
       line: "log.cleaner.dedupe.buffer.size={{ kafka.config.log_cleaner_dedupe_buffer_size }}"
     when: not((kafka.config.log_cleaner_dedupe_buffer_size is undefined) or (kafka.config.log_cleaner_dedupe_buffer_size is none) or (kafka.config.log_cleaner_dedupe_buffer_size | trim == ''))
+    notify: restart broker
+
+  - name: KAFKA OVERLAY (BROKER) | configuring minimum age in milliseconds for {{ broker_service_name }} delete records
+    lineinfile:
+      path: "{{ broker_config_file }}"
+      regexp: '^log.cleaner.delete.retention.ms='
+      line: "log.cleaner.delete.retention.ms={{ kafka.config.log_cleaner_delete_retention_ms }}"
+    when: not((kafka.config.log_cleaner_delete_retention_ms is undefined) or (kafka.config.log_cleaner_delete_retention_ms is none) or (kafka.config.log_cleaner_delete_retention_ms | trim == ''))  
     notify: restart broker
 
   - name: KAFKA OVERLAY (BROKER) | configuring {{ broker_service_name }} total memory used for log cleaner I/O buffers
