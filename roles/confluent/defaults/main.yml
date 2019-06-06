@@ -14,6 +14,6 @@ confluent:
     # kafka_version isn't used under confluent, here mainly to match apache
     kafka_version: '2.1'
 confluent_os_releasever: '7'
-confluent_public_key: "https://packages.confluent.io/rpm/{{ packages.confluent_version }}/archive.key"
+confluent_public_key: "https://packages.confluent.io/rpm/{{ confluent.packages.confluent_version }}/archive.key"
 # setting this to no installs the enterprise platform
 confluent_community: no

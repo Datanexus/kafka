@@ -1,32 +1,65 @@
-#!/bin/sh
+#!/bin/bash
+#
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 
 if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\tkafka-connect-replicator [-h]\\thelp\\n"
-	printf "Usage:\\tsudo -H -u {{ replicator.user }} {{ replicator.user_service }}/kafka-connect-replicator [ start | stop ]\\n"
+	printf "Usage:\\tsudo -H -u {{ replicator.user }} {{ replicator.user_service }}/kafka-connect-replicator [ start | stop | restart | status]\\n"
 	exit 0
 fi
 
-if [ "$1" = "start" ] ; then
-	printf "[%s %s] INFO Starting {{ replicator.distributed.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/replicator.log
+# source function library
+. /etc/init.d/functions
+
+# which jcmd to use
+if [ -z "$JAVA_HOME" ]; then
+  JCMD="jcmd"
+else
+  JCMD="$JAVA_HOME/bin/jcmd"
+fi
+
+PID_FILE={{ (got_root | default('yes')) | ternary('/var/run/' + replicator.distributed.service_name + '.pid', (confluent_root + '/var/run/' + replicator.distributed.service_name + '.pid')) }}
+
+start() {
+  if [ -x `which logger` ]; then
+    logger -s -t {{ replicator.distributed.service_name }} 'starting service...' &>> {{ kafka.environment.LOG_DIR }}/replicator.log
+  fi
   {% for key, value in replicator.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  /usr/bin/nohup /usr/bin/replicator --cluster.id replicator --replication.config {{ replicator.config_file }} --consumer.config {{ replicator.config_dir }}/{{ replicator.config.consumer }} --producer.config {{ replicator.config_dir }}/{{ replicator.config.producer }} >> /var/log/kafka/replicator.log 2>&1 &
- 
-elif [ "$1" = "stop" ] ; then
-  SIGNAL=${SIGNAL:-TERM}
-  PIDS=$(ps ax | grep -i 'connect\.cli' | grep java | grep -v grep | awk '{print $1}')
+  daemon --pidfile ${PID_FILE} {{ replicator_path }}replicator --cluster.id replicator --replication.config {{ replicator.config_file }} >> {{ replicator.distributed.config.logDir }}/replicator.log 2>&1 &
+  sleep 3
+  ${JCMD} | grep 'io.confluent.support.metrics.SupportedKafka {{ broker_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
+}
 
-  if [ -z "$PIDS" ]; then
-    echo "No kafka connect replicator service to stop"
-    exit 1
-  else
-    printf "[%s %s] INFO Stopping {{ replicator.distributed.service_name }}...\\n" `/usr/bin/date +'%Y-%m-%d %H:%M:%S'` | /usr/bin/tee -a /var/log/kafka/replicator.log
-    kill -s $SIGNAL $PIDS
+stop() {
+  if [[ -s "${PID_FILE}" ]]; then
+    if [ -x `which logger` ]; then
+      logger -s -t {{ replicator.distributed.service_name }} 'stopping service...' &>> {{ replicator.distributed.config.logDir }}/replicator.log
+    fi
+    killproc -p ${PID_FILE}
+    sleep 3
   fi
-fi
+}
+ 
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status -p ${PID_FILE} java
+    ;;
+  restart)
+    stop
+    start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart|status}"
+    exit 1
+esac
 
-# {% for key, value in replicator.environment.items() -%}
-# {{ " " ~ key }}="{{ value }}"
-# {%- endfor %}
-#/usr/bin/nohup /usr/bin/connect-distributed -daemon {{ replicator.distributed.config_file }} {{ replicator.config_file }}
+exit $?

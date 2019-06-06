@@ -21,7 +21,10 @@
 
 - set_fact: 
     connect_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
-    
+
+- set_fact: 
+    plugin_path: "{{ (got_root | default('yes')) | ternary('/usr/share/java', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/share/java')) }}"
+
 - block:
   
   # cap number of brokers in config at 5
@@ -131,7 +134,14 @@
       line: "rest.port={{ connect.distributed.config.rest_port }}"
       insertafter: '^#rest.port='
     notify: restart connect
-        
+  
+  - name: KAFKA OVERLAY (CONNECT) | configuring plugin path for {{ connect_service_name }}
+    lineinfile:
+      path: "{{ connect_config_file }}"
+      regexp: '^plugin.path='
+      line: "plugin.path={{ plugin_path }}"
+    notify: restart connect    
+    
   - name: KAFKA OVERLAY (CONNECT) | configuring kafka connect properties for consumer interceptors for control center
     lineinfile:
       path: "{{ connect_config_file }}"

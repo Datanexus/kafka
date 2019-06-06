@@ -1,26 +1,30 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 #
 ---
 - import_tasks: interface-facts.yml
 
+- set_fact:
+    replicator_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
+    
 - block:
   
-  - name: CONFLUENT OVERLAY (REPLICATOR) | installing producer.properties into {{ replicator.config_dir }}
-    template:
-      src: producer.j2
-      dest: "{{ replicator.config_dir }}/producer.properties"
-      mode: 0644
-      owner: "{{ replicator.user }}"
-      group: "{{ replicator.group }}"
-  
-  - name: CONFLUENT OVERLAY (REPLICATOR) | installing consumer.properties into {{ replicator.config_dir }}
-    template:
-      src: consumer.j2
-      dest: "{{ replicator.config_dir }}/consumer.properties"
-      mode: 0644
-      owner: "{{ replicator.user }}"
-      group: "{{ replicator.group }}"
+  # - name: CONFLUENT OVERLAY (REPLICATOR) | installing producer.properties into {{ replicator.config_dir }}
+#     template:
+#       src: producer.j2
+#       dest: "{{ replicator.config_dir }}/producer.properties"
+#       mode: 0644
+#       owner: "{{ replicator.user }}"
+#       group: "{{ replicator.group }}"
+#
+#   - name: CONFLUENT OVERLAY (REPLICATOR) | installing consumer.properties into {{ replicator.config_dir }}
+#     template:
+#       src: consumer.j2
+#       dest: "{{ replicator.config_dir }}/consumer.properties"
+#       mode: 0644
+#       owner: "{{ replicator.user }}"
+#       group: "{{ replicator.group }}"
   
   - name: CONFLUENT OVERLAY (REPLICATOR) | configuring maximum replicator tasks
     lineinfile:

@@ -4,44 +4,29 @@
 # install java
 ---
 # this is unnecessary on RHEL 6
-- name: CONFLUENT OVERLAY | installing epel package
+- name: KAFKA OVERLAY | installing epel package
   package:
     name: "{{ item }}"
     state: present
   with_items:
-    - "epel-release-{{ packages.epel_version }}"
-  when: ansible_distribution == 'CentOS'
+    - "epel-release-{{ confluent.packages.epel_version | default(apache.packages.epel_version) }}"
   become: yes
+  when:
+    - got_root | default('yes')
+    - ansible_distribution == 'CentOS'
   
-# giflib-4.1.6-3.1.el6.x86_64.rpm
-# jpackage-utils-1.7.5-3.16.el6.noarch.rpm
-# lksctp-tools-1.0.10-7.el6.x86_64.rpm
-# nspr-4.19.0-1.el6.x86_64.rpm
-# nss-3.36.0-9.el6_10.x86_64.rpm
-# nss-sysinit-3.36.0-9.el6_10.x86_64.rpm
-# nss-tools-3.36.0-9.el6_10.x86_64.rpm
-# nss-util-3.36.0-1.el6.x86_64.rpm
-# pcsc-lite-libs-1.5.2-16.el6.x86_64.rpm
-# ttmkfdir-3.0.9-32.1.el6.x86_64.rpm
-# tzdata-java-2019a-1.el6.noarch.rpm
-# xorg-x11-fonts-Type1-7.2-11.el6.noarch.rpm
-# java-1.8.0-openjdk-1.8.0.212.b04-0.el6_10.x86_64.rpm
-# java-1.8.0-openjdk-devel-1.8.0.212.b04-0.el6_10.x86_64.rpm
-# java-1.8.0-openjdk-headless-1.8.0.212.b04-0.el6_10.x86_64.rpm
-
-
-- name: CONFLUENT OVERLAY | using first java binary in path
+- name: KAFKA OVERLAY | using first java binary in path
   raw: 'which java'
   register: java_bin
   ignore_errors: yes
 
 - block:
   
-  - name:  CONFLUENT OVERLAY | checking for java-{{ packages.java_version }}.tar.gz
-    stat: path="/tmp/java-{{ packages.java_version }}.tar.gz"
+  - name: KAFKA OVERLAY | checking for java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}.tar.gz
+    stat: path="/tmp/java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}.tar.gz"
     register: existing_package
   
-  - name: CONFLUENT OVERLAY | copying {{ packages.java_version }} from local {{ tenant }} area (this may take some time)
+  - name: KAFKA OVERLAY | copying {{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }} from local {{ tenant }} area (this may take some time)
     copy:
       src: "{{ tenant_config_path }}/packages/{{ item }}"
       dest: "/tmp/{{ item }}"
@@ -49,19 +34,19 @@
       group: "{{ ansible_user }}"
       mode: 0644
     with_items:
-      - "java-{{ packages.java_version }}.tar.gz"
+      - "java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}.tar.gz"
     when:
       - not existing_package.stat.exists
       
   when:
     - java_bin.failed
   
-- name: CONFLUENT OVERLAY | installing java {{ packages.java_version }} packages
+- name: KAFKA OVERLAY | installing java {{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }} packages
   package:
     name: "{{ item }}"
     state: present
   with_items:
-    - "java-{{ packages.java_version }}-openjdk"
-    - "java-{{ packages.java_version }}-openjdk-devel"
+    - "java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}-openjdk"
+    - "java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}-openjdk-devel"
   become: yes
   when: got_root | default('yes')

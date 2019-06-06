@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
-# (c) Copyright 2016 DataNexus Inc.  All Rights Reserved. 
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
 # kafka platform deployment wrapper
 
 : "${AWS_PROFILE:=datanexus}" && export AWS_PROFILE=${AWS_PROFILE}         # sets this to a reasonable ~/.aws/credentials default
@@ -12,13 +14,21 @@ if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
     exit 0
 fi
 
-tenant=`/usr/bin/basename ${2}`   # derive tenant name from the path
+tenant=`/usr/bin/basename ${2}`         # derive tenant name from the path
 application=confluent         # application overlay to deploy
+
+
+# derive the cluster if not passed in
+if [ $# -eq 7 ] ; then
+  cluster=`basename ${1} | cut -d. -f2`
+else
+  cluster=${7}
+fi
 
 # if check is passed in as the last argument run the drift code
 for i in "$@" ; do 
-  [[ $i == "drift" ]] && ./provision-kafka --check --diff --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=$3 cloud=$4 region=$5 domain=$6 cluster=$7 tenant=${tenant} application=${application} key_path=${8}" | ./check && exit ;
-  [[ $i == "replication" ]] && ./provision-replication --inventory=$1 --tags "$application" -e "tenant=$2 project=$3 cloud=$4 region=$5 domain=$6 cluster=$7" && exit ;
+  [[ $i == "drift" ]] && ./provision-kafka --check --diff --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} application=${application} key_path=${8}" | ./check && exit ;
+  [[ $i == "replication" ]] && ./provision-replication --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} key_path=${8}" && exit ;
 done
 
-./provision-kafka --inventory=${1} --tags "${application}" -e "tenant_config_path=${2} project=$3 cloud=$4 region=$5 domain=$6 cluster=$7 tenant=${tenant} application=${application} key_path=${8}"
+./provision-kafka --inventory=${1} --tags "${application}" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} application=${application} key_path=${8}"
