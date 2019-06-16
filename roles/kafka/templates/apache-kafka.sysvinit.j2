@@ -27,7 +27,7 @@ start() {
   {% for key, value in kafka.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  daemon --pidfile ${PID_FILE} --user {{ broker_user }} {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/kafka-server-start.sh {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
+  daemon --pidfile ${PID_FILE} --user {{ broker_user }} {{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/bin/kafka-server-start.sh {{ broker_config_file }} >> {{ kafka.environment.LOG_DIR }}/server.log 2>&1 &
   sleep 3
   ${JCMD} | grep 'io.confluent.support.metrics.SupportedKafka {{ broker_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }

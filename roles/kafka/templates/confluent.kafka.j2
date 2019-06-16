@@ -8,6 +8,7 @@ if [ $# -eq 0 ] || [ "$1" = "-h" ] ; then
 	printf "Usage:\\t[ sudo -H -u {{ broker_user }} ] {{ kafka.user_service }}/broker [ start | stop | restart | status ]\\n"
 	exit 0
 fi
+
 # source function library
 . /etc/init.d/functions
 

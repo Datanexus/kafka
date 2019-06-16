@@ -27,7 +27,7 @@ start() {
   {% for key, value in connect.distributed.environment.items() -%}
   {{ " " ~ key }}="{{ value }}"
   {%- endfor %}
-  daemon --pidfile ${PID_FILE} --user {{ connect_user }} {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/connect-distributed.sh {{ connect_config_file }} >> {{ connect.distributed.environment.LOG_DIR }}/connect.log 2>&1 &
+  daemon --pidfile ${PID_FILE} --user {{ connect_user }} {{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/bin/connect-distributed.sh {{ connect_config_file }} >> {{ connect.distributed.environment.LOG_DIR }}/connect.log 2>&1 &
   sleep 3
   ${JCMD} | grep 'org.apache.kafka.connect.cli.ConnectDistributed {{ connect_config_file }}' | /usr/bin/cut -d " " -f 1 > ${PID_FILE}
 }
