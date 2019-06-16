@@ -269,8 +269,7 @@
   - name: KAFKA OVERLAY (BROKER) | enabling and configuring control center metrics bootstrap servers for {{ broker_service_name }}
     lineinfile:
       path: "{{ broker_config_file }}"
-      regexp: '^confluent.metrics.reporter.bootstrap.servers='
-      # line: "confluent.metrics.reporter.bootstrap.servers={{ controlcenter_brokers[:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
+      regexp: '^confluent.metrics.reporter.bootstrap.servers='  
       line: "confluent.metrics.reporter.bootstrap.servers={{ (groups['controlcenter_broker_public'] | default(groups['kafka_public']))[:5] | join(':' + kafka.config.broker_port + ',') }}:{{ kafka.config.broker_port }}"
       insertafter: '^#confluent.metrics.reporter.bootstrap.servers='
     when:

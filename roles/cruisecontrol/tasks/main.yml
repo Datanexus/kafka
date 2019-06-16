@@ -89,14 +89,12 @@
     args:
       chdir: "{{ cruisecontrol.source_dir }}/cruise-control"
     become_user: "{{ cruisecontrol_user }}"
-    
-  - name: CRUISE CONTROL OVERLAY | fetching cruise control metrics jar
+  
+  - name: CRUISE CONTROL OVERLAY | fetching {{ cruisecontrol.source_dir }}/cruise-control/cruise-control-metrics-reporter/build/libs/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar
     fetch:
-      src: "{{ cruisecontrol.source_dir }}/cruise-control/cruise-control-metrics-reporter/build/libs/{{ item }}"
-      dest: "{{ key_path }}/{{ item }}"
+      src: "{{ cruisecontrol.source_dir }}/cruise-control/cruise-control-metrics-reporter/build/libs/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
+      dest: "{{ key_path }}/cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
       flat: yes
-    with_items:
-      - "cruise-control-metrics-reporter-{{ application_version | default(cruisecontrol.version) }}.jar"
     become_user: "{{ cruisecontrol_user }}"
   
   become: yes

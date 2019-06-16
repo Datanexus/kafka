@@ -17,21 +17,21 @@
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 
-- name: KAFKA OVERLAY | checking for {{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/{{ apache.config_file }}
-  stat: path="{{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/config/{{ apache.config_file }}"
+- name: KAFKA OVERLAY | checking for {{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/config/{{ apache.config_file }}
+  stat: path="{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/config/{{ apache.config_file }}"
   register: existing_package
 
 - block:
 
-  - name: KAFKA OVERLAY | fetching apache kafka v{{ application_version | default(packages.kafka_version) }}
+  - name: KAFKA OVERLAY | fetching apache kafka v{{ application_version | default(apache.packages.kafka_version) }}
     get_url:
-      url: "http://www.gtlib.gatech.edu/pub/apache/kafka/{{ packages.kafka_version }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}.tgz"
-      dest: "/tmp/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}.tgz"
+      url: "http://www.gtlib.gatech.edu/pub/apache/kafka/{{ apache.packages.kafka_version }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}.tgz"
+      dest: "/tmp/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}.tgz"
       mode: 0640
   
-  - name: KAFKA OVERLAY | installing kafka {{ application_version | default(packages.kafka_version) }}
+  - name: KAFKA OVERLAY | installing kafka {{ application_version | default(apache.packages.kafka_version) }}
     unarchive:
-      src: "/tmp/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}.tgz"
+      src: "/tmp/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}.tgz"
       dest: "{{ apache.install_dir }}"
       owner: "{{ apache.user }}"
       group: "{{ apache.group }}"

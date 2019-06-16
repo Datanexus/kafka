@@ -8,10 +8,10 @@ After=network.target remote-fs.target
 
 [Service]
 Type=simple
-WorkingDirectory={{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}
+WorkingDirectory={{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}
 User={{ connect_user }}
 Group={{ connect_user }}
-ExecStart={{ apache.install_dir }}/kafka_{{ packages.scala_version }}-{{ packages.kafka_version }}/bin/connect-distributed.sh {{ connect_config_file }}
+ExecStart={{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/bin/connect-distributed.sh {{ connect_config_file }}
 
 [Install]
 WantedBy=multi-user.target

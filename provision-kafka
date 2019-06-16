@@ -77,24 +77,6 @@
     - include_role:
         name: preflight
 
-- name: CRUISE CONTROL OVERLAY | building cruise control libraries
-  hosts: cruisecontrol
-  tags:
-    - confluent
-  vars_files:
-    - roles/apache/defaults/main.yml
-    - roles/kafka/defaults/main.yml
-    - "{{ tenant_config_path }}/config/applications/cruisecontrol.yml"
-    - "{{ tenant_config_path }}/config/applications/confluent.yml"
-    - "{{ tenant_config_path }}/config/applications/apache.yml"
-  vars:
-      # this is semi clever; application gets set based on each host group
-      application: "{{ group_names | first }}"
-  gather_facts: yes
-  tasks:
-    - include_role:
-        name: cruisecontrol
-
 - name: KAFKA OVERLAY | installing platform across all nodes
   hosts: zookeeper:kafka_broker:registry:controlcenter:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
   tags:
@@ -237,9 +219,10 @@
   tags:
     - confluent
   vars_files:
+    - roles/confluent/defaults/main.yml
     - roles/apache/defaults/main.yml
-    - roles/zookeeper/defaults/main.yml
     - roles/kafka/defaults/main.yml
+    - roles/zookeeper/defaults/main.yml
     - "{{ tenant_config_path }}/config/site.yml"
     - "{{ tenant_config_path }}/config/applications/cruisecontrol.yml"
     - "{{ tenant_config_path }}/config/applications/confluent.yml"

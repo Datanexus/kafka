@@ -17,7 +17,6 @@ fi
 tenant=`/usr/bin/basename ${2}`         # derive tenant name from the path
 application=confluent         # application overlay to deploy
 
-
 # derive the cluster if not passed in
 if [ $# -eq 7 ] ; then
   cluster=`basename ${1} | cut -d. -f2`
@@ -27,8 +26,8 @@ fi
 
 # if check is passed in as the last argument run the drift code
 for i in "$@" ; do 
-  [[ $i == "drift" ]] && ./provision-kafka --check --diff --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} application=${application} key_path=${8}" | ./check && exit ;
-  [[ $i == "replication" ]] && ./provision-replication --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} key_path=${8}" && exit ;
+  [[ $i == "drift" ]] && ./provision-kafka --check --diff --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} application=${application} key_path=${7}" | ./check && exit ;
+  [[ $i == "replication" ]] && ./provision-replication --inventory=${1} --tags "$application" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} key_path=${7}" && exit ;
 done
 
-./provision-kafka --inventory=${1} --tags "${application}" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} application=${application} key_path=${8}"
+./provision-kafka --inventory=${1} --tags "${application}" -e "tenant_config_path=${2} project=${3} cloud=${4} region=${5} domain=${6} cluster=${cluster} tenant=${tenant} application=${application} key_path=${7}"
