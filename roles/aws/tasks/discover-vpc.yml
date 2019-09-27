@@ -1,8 +1,9 @@
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 # discover AWS vpc and set facts
 ---
-- name: CONFLUENT OVERLAY | retrieving default VPC ID by name
+- name: CONFLUENT OVERLAY | retrieving VPC ID for {{ tenant }}_{{ domain }} in {{ region }}
   local_action:
     module: ec2_vpc_net_facts
     region: "{{ region }}"
@@ -12,12 +13,12 @@
   when:
     - cidr_block is not defined
     
-- name: CONFLUENT OVERLAY | retrieving default VPC ID by CIDR
+- name: CONFLUENT OVERLAY | retrieving VPC ID for {{ cidr_block }} in {{ region }}
   local_action:
     module: ec2_vpc_net_facts
     region: "{{ region }}"
     filters:
-      cidr_block: "{{ cidr_block }}"
+      cidr: "{{ cidr_block }}"
   register: specified_vpc_by_cidr
   when:
     - cidr_block is defined
