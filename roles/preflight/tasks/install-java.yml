@@ -14,18 +14,18 @@
   when:
     - got_root | default('yes')
     - ansible_distribution == 'CentOS'
-  
+
 - name: KAFKA OVERLAY | using first java binary in path
   raw: 'which java'
   register: java_bin
   ignore_errors: yes
 
 - block:
-  
+
   - name: KAFKA OVERLAY | checking for java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}.tar.gz
     stat: path="/tmp/java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}.tar.gz"
     register: existing_package
-  
+
   - name: KAFKA OVERLAY | copying {{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }} from local {{ tenant }} area (this may take some time)
     copy:
       src: "{{ tenant_config_path }}/packages/{{ item }}"
@@ -37,10 +37,10 @@
       - "java-{{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }}.tar.gz"
     when:
       - not existing_package.stat.exists
-      
+
   when:
     - java_bin.failed
-  
+
 - name: KAFKA OVERLAY | installing java {{ confluent_kafka | ternary(confluent.packages.java_version, apache.packages.java_version) }} packages
   package:
     name: "{{ item }}"

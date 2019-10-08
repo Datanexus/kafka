@@ -27,6 +27,7 @@
     - roles/registry/defaults/main.yml
     - roles/connect/defaults/main.yml
     - roles/replicator/defaults/main.yml
+    - "{{ tenant_config_path }}/config/{{ project }}.yml"
   gather_facts: yes
   tasks:
     - block:

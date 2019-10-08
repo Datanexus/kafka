@@ -1,19 +1,20 @@
-# (c) Copyright 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 #
 #
 ---
 # CentOS / Redhat 7
 - block:
-    
+
   - name: KAFKA OVERLAY | adding {{ apache.group }} group
     group:
       name: "{{ apache.group }}"
-      
+
   - name: KAFKA OVERLAY | adding {{ apache.user }} user
     user:
       name: "{{ apache.user }}"
       group: "{{ apache.group }}"
-      
+
   become: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 
@@ -28,7 +29,7 @@
       url: "http://www.gtlib.gatech.edu/pub/apache/kafka/{{ apache.packages.kafka_version }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}.tgz"
       dest: "/tmp/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}.tgz"
       mode: 0640
-  
+
   - name: KAFKA OVERLAY | installing kafka {{ application_version | default(apache.packages.kafka_version) }}
     unarchive:
       src: "/tmp/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}.tgz"
@@ -36,7 +37,7 @@
       owner: "{{ apache.user }}"
       group: "{{ apache.group }}"
       remote_src: yes
-  
+
   - name: KAFKA OVERLAY | ensuring kafka configuration directory exists
     file:
       path: /usr/local/bin
@@ -45,5 +46,13 @@
       owner: root
       group: root
 
+  - name: KAFKA OVERLAY | copying {{ confluent.packages.connect_elasticsearch }} from {{ cloud_packages }} (this may take some time)
+    get_url:
+      url: "{{ cloud_packages }}/confluentinc-kafka-connect-elasticsearch-{{ confluent.packages.connect_elasticsearch }}.zip"
+      dest: "/tmp/{{ confluentinc-kafka-connect-elasticsearch-{{ confluent.packages.connect_elasticsearch }}.zip"
+      mode: 0640
+    when:
+      - cloud_packages is defined
+    
   become: yes
   when: not existing_package.stat.exists

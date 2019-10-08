@@ -11,12 +11,12 @@
   raw: 'which python'
   register: python_interpreter
   when: not use_existing_python
-  
+
 - name: CONFLUENT OVERLAY | updating ansible python in subsequent tasks
   set_fact:
     ansible_python_interpreter: '{{ python_interpreter.stdout }}'
   when: not use_existing_python
-  
+
 - name: CONFLUENT OVERLAY | installing confluent platform public key (failures here are okay)
   rpm_key:
     state: present
@@ -28,7 +28,7 @@
   when: 
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     - got_root | default('yes')
-  
+
 # reset the interpreter back to ansible default for package installation
 - name: CONFLUENT OVERLAY | defaulting to system python
   set_fact:
@@ -38,7 +38,7 @@
 # this section gets the appropriate package (rpms or tarball) onto each system
 - set_fact:
     dn_confluent: "{{ (got_root | default('yes')) | ternary('confluent-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}-{{ confluent.packages.scala_version }}.rpmbundle.tar.gz','confluent-{{ confluent.packages.confluent_version }}.{{ confluent.packages.minor_release }}-{{ confluent.packages.scala_version }}.tar.gz') }}"
-  
+
 - name:  CONFLUENT OVERLAY | checking for {{ dn_confluent }}
   stat: path="/tmp/{{ dn_confluent }}"
   register: existing_package
@@ -57,7 +57,7 @@
   when:
     - cloud_packages is defined
     - not existing_install.stat.exists or (got_root | default('yes'))
-  
+
 - name: CONFLUENT OVERLAY | copying {{ application_version | default(confluent_platform_version) }} from local {{ tenant }} area (this may take some time)
   copy:
     src: "{{ tenant_config_path }}/packages/{{ dn_confluent }}"
@@ -89,10 +89,10 @@
     - existing_package.stat.exists
 
 - block:
-  
+
   # this block handles a local installation, either because python < 2.7.9 or lack of external connectivity
   - block:
-      
+
     # if you change the below order, you'd better know what ckeller@datanexus.org was thinking
     - name: CONFLUENT OVERLAY | installing {{ application_version | default(confluent_platform_version) }} from system
       package:
@@ -152,24 +152,34 @@
     when:
       - rpm_out
       - rpm_out.failed
-  
+
   # this block handles the standard remote confluent installation
   - block:
-    
-    - name: CONFLUENT OVERLAY | configuring confluent platform repo for CentOS / Redhat
-      template:
-        src: confluent-repo.j2
-        dest: /etc/yum.repos.d/confluent.repo
-        mode: 0644
+
+    - name: CONFLUENT OVERLAY | configuring confluent platform repo for {{ confluent.packages.confluent_version }}
+      yum_repository:
+        name: confluent.dist
+        description: Confluent repository (dist)
+        baseurl: http://packages.confluent.io/rpm/{{ confluent.packages.confluent_version }}/{{ confluent_os_releasever }}
+        gpgcheck: yes
+        gpgkey: http://packages.confluent.io/rpm/{{ confluent.packages.confluent_version }}/archive.key
+
+    - name: CONFLUENT OVERLAY | configuring confluent platform repo for {{ confluent.packages.confluent_version }}
+      yum_repository:
+        name: confluent
+        description: Confluent repository
+        baseurl: http://packages.confluent.io/rpm/{{ confluent.packages.confluent_version }}
+        gpgcheck: yes
+        gpgkey: http://packages.confluent.io/rpm/{{ confluent.packages.confluent_version }}/archive.key
 
     - name: CONFLUENT OVERLAY | installing {{ application_version | default(confluent_platform_version) }} from confluent repos
       package:
         name: "{{ application_version | default(confluent_platform_version) }}"
         state: present
       notify: yum-clean-all
-    
+
     when: not rpm_out.failed
-    
+
   become: yes
   when:
     - got_root | default('yes') 

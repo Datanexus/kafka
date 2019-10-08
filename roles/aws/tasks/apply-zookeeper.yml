@@ -19,9 +19,8 @@
     - cloud == 'aws'
     - "'zookeeper' in groups | default([])"
 
-
 - block:
-  
+
   # construct list of all interfaces attached to zookeeper nodes
   - set_fact:
       zookeeper_interfaces: "{{ all_zookeeper_nodes.instances | map(attribute='network_interfaces') | list }}"

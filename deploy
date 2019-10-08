@@ -17,11 +17,12 @@ fi
 tenant=`/usr/bin/basename ${2}`         # derive tenant name from the path
 application=confluent         # application overlay to deploy
 
+
 # derive the cluster if not passed in
 if [ $# -eq 7 ] ; then
   cluster=`basename ${1} | cut -d. -f2`
 else
-  cluster=${7}
+  cluster=${8}
 fi
 
 # if check is passed in as the last argument run the drift code
