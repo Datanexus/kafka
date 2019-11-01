@@ -1,9 +1,12 @@
-# (c) 2018 DataNexus Inc.  All Rights Reserved.
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
 ---
 confluent:
   packages:
     connect_elasticsearch: '5.3.1'
     java_version: '1.8.0'
+    confluent_version: '5.1'
+    minor_release: '0'
 apache:
   packages:
     epel_version: '7-11'
