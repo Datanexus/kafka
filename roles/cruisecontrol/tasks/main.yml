@@ -7,7 +7,7 @@
 - import_tasks: tune.yml
 
 - import_tasks: interface-facts.yml
-  
+
 - set_fact: 
     cruisecontrol_user: "{{ (apache_kafka) | ternary(kafka.apache.user, kafka.confluent.user) }}"
 
