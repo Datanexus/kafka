@@ -32,10 +32,6 @@
     
 - set_fact:     
      broker_group: "{{ (getent_passwd[kafka.apache.group] is none) | ternary(kafka.confluent.group, kafka.apache.group) }}"
-
-# - debug: msg="{{ zookeeper_user }} {{ broker_user }} {{ broker_group }} {{ broker_service_name }} {{ broker_config_file }}"
-#
-# - pause:
   
 - set_fact:
     apache_bin: "{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/bin"
