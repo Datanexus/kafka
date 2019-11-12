@@ -3,20 +3,39 @@
 #
 # install kafka cluster helper utilities
 ---
-- set_fact:
-    zookeeper_user: "{{ (apache_kafka) | ternary(zookeeper.apache.user, zookeeper.confluent.user) }}"
+- getent:
+    database: passwd
+    key: "{{ zookeeper.apache.user }}"
+    fail_key: False
 
 - set_fact:
-    broker_user: "{{ (apache_kafka) | ternary(kafka.apache.user, kafka.confluent.user) }}"
+    zookeeper_user: "{{ (getent_passwd[zookeeper.apache.user] is none) | ternary(zookeeper.confluent.user, zookeeper.apache.user) }}"
+    
+- getent:
+    database: passwd
+    key: "{{ kafka.apache.user }}"
+    fail_key: False
+  
+- set_fact:
+    broker_user: "{{ (getent_passwd[kafka.apache.user] is none) | ternary(kafka.confluent.user, kafka.apache.user) }}"
 
 - set_fact:
-     broker_group: "{{ (apache_kafka) | ternary(kafka.apache.group, kafka.confluent.group) }}"
+    broker_service_name: "{{ (getent_passwd[kafka.apache.user] is none) | ternary(kafka.confluent.service_name, kafka.apache.service_name) }}"
 
 - set_fact:
-    broker_service_name: "{{ (apache_kafka) | ternary(kafka.apache.service_name, kafka.confluent.service_name) }}"
+    broker_config_file: "{{ (getent_passwd[kafka.apache.user] is none) | ternary(kafka.confluent.config_file, kafka.apache.config_file) }}"
+    
+- getent:
+    database: group
+    key: "{{ kafka.apache.group }}"
+    fail_key: False
+    
+- set_fact:     
+     broker_group: "{{ (getent_passwd[kafka.apache.group] is none) | ternary(kafka.confluent.group, kafka.apache.group) }}"
 
-- set_fact:
-    broker_config_file: "{{ (apache_kafka) | ternary(kafka.apache.config_file, kafka.confluent.config_file) }}"
+# - debug: msg="{{ zookeeper_user }} {{ broker_user }} {{ broker_group }} {{ broker_service_name }} {{ broker_config_file }}"
+#
+# - pause:
   
 - set_fact:
     apache_bin: "{{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/bin"
@@ -25,10 +44,10 @@
     dn_bin_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
     
 - set_fact: 
-    utils_path: "{{ (apache_kafka) | ternary(apache_bin, dn_bin_path) }}"
+    utils_path: "{{ (getent_passwd[kafka.apache.user] is none) | ternary(dn_bin_path, apache_bin) }}"
 
 - set_fact: 
-    bin_suffix: "{{ (apache_kafka) | ternary('.sh', '') }}"
+    bin_suffix: "{{ (getent_passwd[kafka.apache.user] is none) | ternary('', '.sh') }}"
     
 - block:
 
