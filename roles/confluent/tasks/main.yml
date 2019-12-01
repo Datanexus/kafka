@@ -156,7 +156,7 @@
   # this block handles the standard remote confluent installation
   - block:
 
-    - name: CONFLUENT OVERLAY | configuring confluent platform repo for {{ confluent.packages.confluent_version }}
+    - name: CONFLUENT OVERLAY | configuring confluent platform repo (dist) for {{ confluent.packages.confluent_version }}
       yum_repository:
         name: confluent.dist
         description: Confluent repository (dist)

@@ -162,17 +162,38 @@
   hosts: localhost
   gather_facts: no
   tasks:
-    # assumption that the public internal interface is the default
-    - name: KAFKA OVERLAY | building broker public internal host group
-      add_host: hostname="{{ hostvars[item].ansible_default_ipv4.address }}" groupname=kafka_public
+    # eth0 is the data plane in a single interface system
+    - name: KAFKA OVERLAY | building eth0 broker host group
+      add_host: hostname="{{ hostvars[item].ansible_eth0.ipv4.address }}" groupname=kafka_public
       with_items: "{{ groups['kafka_broker'] }}"
-      when: "'kafka_broker' in groups | default([])"
-    
+      when:
+        - "'kafka_broker' in groups | default([])"
+        - hostvars[item].ansible_eth1 is not defined
+
+    # eth1 is the dataplane in a multi interface system
+    - name: KAFKA OVERLAY | building eth1 broker host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_public
+      with_items: "{{ groups['kafka_broker'] }}"
+      when:
+        - "'kafka_broker' in groups | default([])"
+        - hostvars[item].ansible_eth1 is defined
+
     # this is primarily for controlcenter monitoring of secondary clusters
-    - name: KAFKA OVERLAY | building control center broker public internal host group
-      add_host: hostname="{{ hostvars[item].ansible_default_ipv4.address }}" groupname=controlcenter_broker_public
+    # eth0 is the data plane in a single interface system
+    - name: KAFKA OVERLAY | building eth0 control center broker host group
+      add_host: hostname="{{ hostvars[item].ansible_eth0.ipv4.address }}" groupname=controlcenter_broker_public
       with_items: "{{ groups['controlcenter_broker'] }}"
-      when: "'controlcenter_broker' in groups | default([])"
+      when:
+        - "'controlcenter_broker' in groups | default([])"
+        - hostvars[item].ansible_eth1 is not defined
+
+    # eth1 is the dataplane in a multi interface system
+    - name: KAFKA OVERLAY | building eth1 control center broker host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=controlcenter_broker_public
+      with_items: "{{ groups['controlcenter_broker'] }}"
+      when:
+        - "'controlcenter_broker' in groups | default([])"
+        - hostvars[item].ansible_eth1 is defined
 
 - name: KAFKA OVERLAY | configuring kafka
   hosts: kafka_broker
@@ -206,18 +227,28 @@
   tasks:
     - import_role:
         name: registry
-    
+
 - name: KAFKA OVERLAY | building kafka ksql public internal host group
   tags:
     - confluent
   hosts: localhost
   gather_facts: no
   tasks:
-    # assumption that the public internal interface is the default
-    - name: KAFKA OVERLAY | building kafka ksql public internal host group
-      add_host: hostname="{{ hostvars[item].ansible_default_ipv4.address }}" groupname=kafka_ksql_public
+    # eth0 is the data plane in a single interface system
+    - name: KAFKA OVERLAY | building eth0 ksql host group
+      add_host: hostname="{{ hostvars[item].ansible_eth0.ipv4.address }}" groupname=kafka_ksql_public
       with_items: "{{ groups['kafka_ksql'] }}"
-      when: "'kafka_ksql' in groups | default([])"
+      when:
+        - "'kafka_ksql' in groups | default([])"
+        - hostvars[item].ansible_eth1 is not defined
+
+    # eth1 is the dataplane in a multi interface system
+    - name: KAFKA OVERLAY | building eth1 ksql host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_ksql_public
+      with_items: "{{ groups['kafka_ksql'] }}"
+      when:
+        - "'kafka_ksql' in groups | default([])"
+        - hostvars[item].ansible_eth1 is defined
 
 - name: KAFKA OVERLAY | building kafka connect public internal host group
   tags:
@@ -225,11 +256,21 @@
   hosts: localhost
   gather_facts: no
   tasks:
-    # assumption that the public internal interface is the default
-    - name: KAFKA OVERLAY | retrieving data network ip address
-      add_host: hostname="{{ hostvars[item].ansible_default_ipv4.address }}" groupname=kafka_connect_public
+    # eth0 is the data plane in a single interface system
+    - name: KAFKA OVERLAY | building eth0 connect host group
+      add_host: hostname="{{ hostvars[item].ansible_eth0.ipv4.address }}" groupname=kafka_connect_public
       with_items: "{{ groups['kafka_connect'] }}"
-      when: "'kafka_connect' in groups | default([])"
+      when:
+        - "'kafka_connect' in groups | default([])"
+        - hostvars[item].ansible_eth1 is not defined
+
+    # eth1 is the dataplane in a multi interface system
+    - name: KAFKA OVERLAY | building eth1 connect host group
+      add_host: hostname="{{ hostvars[item].ansible_eth1.ipv4.address }}" groupname=kafka_connect_public
+      with_items: "{{ groups['kafka_connect'] }}"
+      when:
+        - "'kafka_connect' in groups | default([])"
+        - hostvars[item].ansible_eth1 is defined
 
 - name: CRUISE CONTROL OVERLAY | configuring linkedin cruise control
   hosts: cruisecontrol
@@ -251,7 +292,7 @@
   tasks:
     - include_role:
         name: cruisecontrol
-        
+
 - name: KAFKA OVERLAY | configuring confluent controlcenter
   hosts: controlcenter
   tags:
@@ -289,7 +330,7 @@
   tasks:
     - import_role:
         name: connect
-    
+
 - name: KAFKA OVERLAY | configuring confluent kafka ReST proxy
   hosts: rest_proxy
   tags:
@@ -323,7 +364,7 @@
   tasks:
     - import_role:
         name: ksql
-    
+
 - name: KAFKA OVERLAY | completing postflight actions
   hosts: zookeeper:kafka_broker:registry:kafka_connect:rest_proxy:kafka_ksql:kafka_replicator
   tags:
