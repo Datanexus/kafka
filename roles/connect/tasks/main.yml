@@ -7,19 +7,19 @@
 
 - import_tasks: interface-facts.yml
 
-- set_fact: 
+- set_fact:
     connect_user: "{{ (apache_kafka) | ternary(connect.distributed.apache.user, connect.distributed.confluent.user) }}"
 
-- set_fact: 
+- set_fact:
      connect_group: "{{ (apache_kafka) | ternary(connect.distributed.apache.group, connect.distributed.confluent.group) }}"
   
-- set_fact: 
+- set_fact:
     connect_service_name: "{{ (apache_kafka) | ternary(connect.distributed.apache.service_name, connect.distributed.confluent.service_name) }}"
 
-- set_fact: 
+- set_fact:
     connect_config_file: "{{ (apache_kafka) | ternary(connect.distributed.apache.config_file, connect.distributed.confluent.config_file) }}"
 
-- set_fact: 
+- set_fact:
     connect_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
 
 - set_fact: 
