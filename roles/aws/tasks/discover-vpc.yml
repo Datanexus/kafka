@@ -3,7 +3,7 @@
 #
 # discover AWS vpc and set facts
 ---
-- name: CONFLUENT OVERLAY | retrieving VPC ID for {{ tenant }}_{{ domain }} in {{ region }}
+- name: KAFKA ({{ cloud }}) | retrieving facts for {{ tenant }}_{{ domain }}
   local_action:
     module: ec2_vpc_net_facts
     region: "{{ region }}"
@@ -11,23 +11,23 @@
       "tag:Name": "{{ tenant }}_{{ domain }}"
   register: specified_vpc_by_name
   when:
-    - cidr_block is not defined
-    
-- name: CONFLUENT OVERLAY | retrieving VPC ID for {{ cidr_block }} in {{ region }}
+    - cidr is not defined
+  
+- name: KAFKA ({{ cloud }}) | retrieving facts for {{ cidr | default(datanexus.cidr) }}
   local_action:
     module: ec2_vpc_net_facts
     region: "{{ region }}"
     filters:
-      cidr: "{{ cidr_block }}"
+      cidr-block: "{{ cidr | default(datanexus.cidr) }}"
   register: specified_vpc_by_cidr
   when:
-    - cidr_block is defined
+    - cidr is defined
 
-- name: CONFLUENT OVERLAY | setting vpc
+- name: KAFKA ({{ cloud }}) | setting vpc
   set_fact:
     specified_vpc: "{{ (specified_vpc_by_name.vpcs is defined) | ternary(specified_vpc_by_name,specified_vpc_by_cidr) }}"
-
-- name: CONFLUENT OVERLAY | retrieving {{ internal_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
+  
+- name: KAFKA ({{ cloud }}) | retrieving facts for datanexus private internal in {{ cidr | default(datanexus.cidr) }} in {{ cloud }} {{ region }}
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
@@ -36,22 +36,22 @@
   register: internal_subnet_by_name
   when:
     - internal_subnet is not defined
-    
-- name: CONFLUENT OVERLAY | retrieving {{ internal_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
+
+- name: KAFKA ({{ cloud }}) | retrieving facts for {{ internal_subnet | default(datanexus.internal_subnet) }} in {{ cidr | default(datanexus.cidr) }} in {{ cloud }} {{ region }}
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
     filters:
-      cidr-block: "{{ internal_subnet }}"
+      cidr-block: "{{ internal_subnet | default(datanexus.internal_subnet) }}"
   register: internal_subnet_by_cidr
   when:
     - internal_subnet is defined
 
-- name: CONFLUENT OVERLAY | setting internal private subnet
+- name: KAFKA ({{ cloud }}) | setting private internal subnet to {{ (internal_subnet_by_name.subnets is defined) | ternary(internal_subnet_by_name,internal_subnet_by_cidr) }}
   set_fact:
     internal_subnet_result: "{{ (internal_subnet_by_name.subnets is defined) | ternary(internal_subnet_by_name,internal_subnet_by_cidr) }}"
-
-- name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
+  
+- name: KAFKA ({{ cloud }}) | retrieving datanexus public internal facts for {{ cidr }} in {{ cloud }} {{ region }}
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
@@ -60,74 +60,84 @@
   register: external_subnet_by_name
   when:
     - external_subnet is not defined
-    
-- name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
+
+- name: KAFKA ({{ cloud }}) | retrieving facts for {{ external_subnet | default(datanexus.external_subnet) }} in {{ cidr }} in {{ cloud }} {{ region }}
   local_action:
     module: ec2_vpc_subnet_facts
     region: "{{ region }}"
     filters:
-      cidr-block: "{{ external_subnet }}"
+      cidr-block: "{{ external_subnet | default(datanexus.external_subnet) }}"
   register: external_subnet_by_cidr
   when:
     - external_subnet is defined
 
-- name: CONFLUENT OVERLAY | setting internal public subnet
+- name: KAFKA ({{ cloud }}) | setting public external subnet
   set_fact:
     external_subnet_result: "{{ (external_subnet_by_name.subnets is defined) | ternary(external_subnet_by_name,external_subnet_by_cidr) }}"
+  
+- name: KAFKA ({{ cloud }}) | retrieving datanexus security and metrics facts for {{ cidr }} in {{ cloud }} {{ region }}
+  local_action:
+    module: ec2_vpc_subnet_facts
+    region: "{{ region }}"
+    filters:
+      "tag:Name": 'datanexus security and metrics'
+  register: metrics_subnet_by_name
+  when:
+    - metrics_subnet is not defined
 
-# - name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by name
-#   local_action:
-#     module: ec2_vpc_subnet_facts
-#     region: "{{ region }}"
-#     filters:
-#       "tag:Name": 'datanexus security and metrics'
-#   register: metrics_subnet_by_name
-#   when:
-#     - metrics_subnet is not defined
-#
-# - name: CONFLUENT OVERLAY | retrieving {{ external_subnet }} ID for {{ cidr_block }} in {{ cloud }} {{ region }} by CIDR
-#   local_action:
-#     module: ec2_vpc_subnet_facts
-#     region: "{{ region }}"
-#     filters:
-#       cidr-block: "{{ metrics_subnet }}"
-#   register: metrics_subnet_by_cidr
-#   when:
-#     - metrics_subnet is defined
-#
-# - name: CONFLUENT OVERLAY | setting security and metrics internal subnet
-#   set_fact:
-#     metrics_subnet_result: "{{ (metrics_subnet_by_name.subnets is defined) | ternary(metrics_subnet_by_name,metrics_subnet_by_cidr) }}"
+- name: KAFKA ({{ cloud }}) | retrieving {{ metrics_subnet | default('no') }} facts for {{ cidr }} in {{ cloud }} {{ region }}
+  local_action:
+    module: ec2_vpc_subnet_facts
+    region: "{{ region }}"
+    filters:
+      cidr-block: "{{ metrics_subnet }}"
+  register: metrics_subnet_by_cidr
+  when:
+    - metrics_subnet is defined
 
-- name: CONFLUENT OVERLAY | setting default internal subnet
+- name: KAFKA ({{ cloud }}) | setting security and metrics internal subnet
+  set_fact:
+    metrics_subnet_result: "{{ (metrics_subnet_by_name.subnets is defined) | ternary(metrics_subnet_by_name,metrics_subnet_by_cidr) }}"
+  when: metrics_subnet_by_name.subnets | length > 0
+
+- name: KAFKA ({{ cloud }}) | setting VPC id to {{ specified_vpc.vpcs.0.id }}
+  set_fact: 
+    vpc_id: "{{ specified_vpc.vpcs.0.id  }}"
+  when:
+    - specified_vpc.skipped is not defined
+
+- name: KAFKA ({{ cloud }}) | setting internal subnet to {{ internal_subnet_result.subnets.0.cidr_block }}
   set_fact: 
     internal_subnet: "{{ internal_subnet_result.subnets.0.cidr_block }}"
   when: internal_subnet is not defined
-  
-- name: CONFLUENT OVERLAY | setting default internal subnet id
+
+- name: KAFKA ({{ cloud }}) | setting internal subnet id to {{ internal_subnet_result.subnets.0.id }}
   set_fact:
     internal_subnet_id: "{{ internal_subnet_result.subnets.0.id }}"
   when:
     - internal_subnet_result.skipped is not defined
 
-- name: CONFLUENT OVERLAY | setting default external subnet
+- name: KAFKA ({{ cloud }}) | setting external subnet to {{ external_subnet_result.subnets.0.cidr_block }}
   set_fact: 
     external_subnet: "{{ external_subnet_result.subnets.0.cidr_block }}"
   when: external_subnet is not defined
-  
-- name: CONFLUENT OVERLAY | setting default external subnet id
+
+- name: KAFKA ({{ cloud }}) | setting external subnet id to {{ external_subnet_result.subnets.0.id }}
   set_fact:
     external_subnet_id: "{{ external_subnet_result.subnets.0.id }}"
   when:
     - external_subnet_result.skipped is not defined
 
-# - name: CONFLUENT OVERLAY | setting default metrics subnet
-#   set_fact:
-#     metrics_subnet: "{{ metrics_subnet_result.subnets.0.cidr_block }}"
-#   when: metrics_subnet is not defined
-#
-# - name: CONFLUENT OVERLAY | setting default metrics subnet id
-#   set_fact:
-#     metrics_subnet_id: "{{ metrics_subnet_result.subnets.0.id }}"
-#   when:
-#     - metrics_subnet_result.skipped is not defined
+- name: KAFKA ({{ cloud }}) | setting metrics subnet to {{ metrics_subnet_result.subnets.0.cidr_block }}
+  set_fact:
+    metrics_subnet: "{{ metrics_subnet_result.subnets.0.cidr_block }}"
+  when:
+    - metrics_subnet_result is defined
+    - metrics_subnet is not defined
+
+- name: KAFKA ({{ cloud }}) | setting metrics subnet id to {{ metrics_subnet_result.subnets.0.id }}
+  set_fact:
+    metrics_subnet_id: "{{ metrics_subnet_result.subnets.0.id }}"
+  when:
+    - metrics_subnet_result is defined
+    - metrics_subnet_result.skipped is not defined
