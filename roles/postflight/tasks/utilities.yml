@@ -38,16 +38,16 @@
 
 - set_fact:
     dn_bin_path: "{{ (got_root | default('yes')) | ternary('/usr/bin', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/bin')) }}"
-    
+
 - set_fact: 
     utils_path: "{{ (getent_passwd[kafka.apache.user] is none) | ternary(dn_bin_path, apache_bin) }}"
 
 - set_fact: 
     bin_suffix: "{{ (getent_passwd[kafka.apache.user] is none) | ternary('', '.sh') }}"
-    
+
 - block:
 
-  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic list utility to {{ postflight.utilsDir }}
+  - name: KAFKA POSTFLIGHT ({{ ansible_distribution }}) | installing kafka topic list utility to {{ postflight.utilsDir }}
     template:
       src: list-topics.j2
       dest: "{{ postflight.utilsDir }}/list-topics"
@@ -57,8 +57,8 @@
     when:
       - groups['zookeeper'] is defined
       - groups['zookeeper'] | length > 0
-      
-  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic describe utility to {{ postflight.utilsDir }}
+
+  - name: KAFKA POSTFLIGHT ({{ ansible_distribution }}) | installing kafka topic describe utility to {{ postflight.utilsDir }}
     template:
       src: describe-topic.j2
       dest: "{{ postflight.utilsDir }}/describe-topic"
@@ -68,8 +68,8 @@
     when:
       - groups['zookeeper'] is defined
       - groups['zookeeper'] | length > 0
-      
-  - name: KAFKA OVERLAY (POSTFLIGHT) | installing kafka topic consume utility to {{ postflight.utilsDir }}
+
+  - name: KAFKA POSTFLIGHT ({{ ansible_distribution }}) | installing kafka topic consume utility to {{ postflight.utilsDir }}
     template:
       src: consume-topic.j2
       dest: "{{ postflight.utilsDir }}/consume-topic"
@@ -79,5 +79,5 @@
     when:
       - groups['kafka_broker'] is defined
       - groups['kafka_broker'] | length > 0
-      
+
   become: "{{ got_root | default('yes') }}"

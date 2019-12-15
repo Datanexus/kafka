@@ -56,3 +56,20 @@
     
   become: yes
   when: not existing_package.stat.exists
+
+- block:
+
+  - name: KAFKA OVERLAY ({{ ansible_distribution }}) | ensuring jline {{ apache.packages.jline }} package is present
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - "jline-{{ apache.packages.jline }}.el7"
+
+  - name: KAFKA OVERLAY ({{ ansible_distribution }}) | copying jline to {{ apache.install_dir }}/kafka_{{ apache.packages.scala_version }}-{{ apache.packages.kafka_version }}/libs
+    command: "cp /usr/share/java/jline.jar {{ apache.install_dir + '/kafka_' + apache.packages.scala_version + '-' + apache.packages.kafka_version + '/libs' }}"
+
+  become: yes
+  become_user: "{{ apache.user }}"
+  when:
+    - ansible_distribution == 'RedHat' and ansible_distribution_version is version_compare('7', '>=')

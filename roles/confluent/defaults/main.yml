@@ -3,6 +3,7 @@
 ---
 confluent:
   packages:
+    jline: '1.0-8'
     epel_version: '7-11'
     java_version: '1.8.0'
     confluent_version: '5.3'

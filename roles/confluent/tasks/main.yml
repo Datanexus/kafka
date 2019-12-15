@@ -184,3 +184,19 @@
   when:
     - got_root | default('yes') 
     - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
+- block:
+
+  - name: CONFLUENT OVERLAY ({{ ansible_distribution }}) | ensuring jline {{ confluent.packages.jline }} package is present
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - "jline-{{ confluent.packages.jline }}.el7"
+
+  - name: CONFLUENT OVERLAY ({{ ansible_distribution }}) | copying jline jar to /usr/share/java/kafka
+    command: cp /usr/share/java/jline.jar /usr/share/java/kafka
+
+  become: yes
+  when:
+    - ansible_distribution == 'RedHat' and ansible_distribution_version is version_compare('7', '>=')
