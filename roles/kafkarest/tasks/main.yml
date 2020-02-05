@@ -34,7 +34,7 @@
     lineinfile:
       path: "{{ kafkarest.config_file }}"
       regexp: '^zookeeper.connect='
-      line: "zookeeper.connect={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+      line: "zookeeper.connect={{ groups['zookeeper_private'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
       insertafter: '^#zookeeper.connect='
     notify: restart kafkarest
   

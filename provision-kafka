@@ -137,6 +137,13 @@
     - "{{ tenant_config_path }}/config/applications/apache.yml"
   gather_facts: yes
   tasks:
+    # we always build the zookeeper nodes off the admin plane internal IP
+    - name: KAFKA OVERLAY (ZOOKEEPER) | building eth0 zookeeper host group
+      add_host: hostname="{{ hostvars[item].ansible_eth0.ipv4.address }}" groupname=zookeeper_private
+      with_items: "{{ groups['zookeeper'] }}"
+      when:
+        - "'zookeeper' in groups | default([])"
+
     - import_role:
         name: zookeeper
       
