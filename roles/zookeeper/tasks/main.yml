@@ -6,7 +6,7 @@
 # these really need to be the first tasks
 - import_tasks: tune.yml
 - import_tasks: interface-facts.yml
-  
+
 - set_fact: 
     zookeeper_user: "{{ (apache_kafka) | ternary(zookeeper.apache.user, zookeeper.confluent.user) }}"
 
@@ -84,7 +84,7 @@
       line: "syncLimit={{ zookeeper.config.syncLimit }}"
     when: not((zookeeper.config.syncLimit is undefined) or (zookeeper.config.syncLimit is none) or (zookeeper.config.syncLimit | trim == ''))
     notify: restart zookeeper
-    
+
   - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} autopurge.snapRetainCount
     lineinfile:
       path: "{{ zookeeper_config_file }}"
@@ -92,7 +92,7 @@
       line: "autopurge.snapRetainCount={{ zookeeper.config.autopurge_snapRetainCount }}"
     when: not((zookeeper.config.autopurge_snapRetainCount is undefined) or (zookeeper.config.autopurge_snapRetainCount is none) or (zookeeper.config.autopurge_snapRetainCount | trim == ''))
     notify: restart zookeeper
-  
+
   - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} autopurge.purgeInterval
     lineinfile:
       path: "{{ zookeeper_config_file }}"
@@ -101,12 +101,12 @@
     when: not((zookeeper.config.autopurge_purgeInterval is undefined) or (zookeeper.config.autopurge_purgeInterval is none) or (zookeeper.config.autopurge_purgeInterval | trim == ''))
     notify: restart zookeeper
 
-  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ ansible_play_hosts | length }} {{ zookeeper_service_name }} hosts
+  - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ groups['zookeeper_private'] | length }} {{ zookeeper_service_name }} hosts
     lineinfile:
       path: "{{ zookeeper_config_file }}"
       regexp: "^server.{{ item.0 + 1 | int }}="
       line: "server.{{ item.0 + 1 | int }}={{ item.1 }}:2888:3888"
-    with_indexed_items: "{{ ansible_play_hosts }}"
+    with_indexed_items: "{{ groups['zookeeper_private'] }}"
     notify: restart zookeeper
 
   - name: KAFKA OVERLAY (ZOOKEEPER) | configuring {{ zookeeper_service_name }} myid file
