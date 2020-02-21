@@ -24,7 +24,7 @@ connect:
       ssl.endpoint.identification.algorithm: ""
       consumer.ssl.endpoint.identification.algorithm: ""
       producer.ssl.endpoint.identification.algorithm: ""
-      config_storage_replication_factor: 3
+      config_storage_replication_factor: "{{ ((groups['kafka_broker'] | length) > 3) | ternary(3, groups['kafka_broker'] | length) }}"
       config_storage_topic: connect-configs
       group_id: connect-cluster
       key_converter: org.apache.kafka.connect.json.JsonConverter
@@ -32,7 +32,7 @@ connect:
       value_converter: org.apache.kafka.connect.json.JsonConverter
       value_converter_schemas_enable: false
       offset_flush_interval_ms: 10000
-      offset_storage_replication_factor: 3
+      offset_storage_replication_factor: "{{ ((groups['kafka_broker'] | length) > 3) | ternary(3, groups['kafka_broker'] | length) }}"
       offset_storage_topic: connect-offsets
-      status_storage_replication_factor: 3
+      status_storage_replication_factor: "{{ ((groups['kafka_broker'] | length) > 3) | ternary(3, groups['kafka_broker'] | length) }}"
       status_storage_topic: connect-status

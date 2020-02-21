@@ -46,7 +46,7 @@ kafka:
     logDir: "{{ broker_data_dir | default('/var/lib/kafka/data') }}"
     default_num_partitions: 1
     num_recovery_threads_per_data_dir: 2
-    offsets_topic_replication_factor: 3
+    offsets_topic_replication_factor: "{{ ((groups['kafka_broker'] | length) > 3) | ternary(3, groups['kafka_broker'] | length) }}"
     # default 1
     transaction_state_log_replication_factor:
     transaction_state_log_min_isr: 2
@@ -59,7 +59,7 @@ kafka:
     log_cleaner_delete_retention_ms: "{{ (tenant_log_cleaner_delete_retention_ms is defined | default('yes')) | ternary(tenant_log_cleaner_delete_retention_ms, none) }}"
     zookeeper_connection_timeout_ms: "{{ tenant_zookeeper_timeout_ms | default(6000) }}"
     metric_reporters: io.confluent.metrics.reporter.ConfluentMetricsReporter
-    confluent_metrics_reporter_topic_replicas: 3
+    confluent_metrics_reporter_topic_replicas: "{{ ((groups['kafka_broker'] | length) > 3) | ternary(3, groups['kafka_broker'] | length) }}"
     # default 0
     group_initial_rebalance_delay_ms:
     # default 10
