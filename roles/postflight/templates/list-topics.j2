@@ -3,7 +3,7 @@
 # Licensed software not for distribution
 
 if [ $# -eq 0 ] ; then
-	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
+	ZOOKEEPER_HOSTS={{ groups['zookeeper_private'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
 elif [ "$1" = "-h" ] ; then
   printf "Usage:  list-topics [-h]\\thelp\\n"
   printf "\\tlist-topics [-z ZOOKEEPER:PORT[,ZOOKEEPER:PORT]]\\tlist cluster topics\\n"
