@@ -4,7 +4,7 @@
 
 # no arguments means describe all
 if [ $# -eq 0 ] ; then
-  ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
+  ZOOKEEPER_HOSTS={{ groups['zookeeper_private'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
   TOPICS=`{{ dn_bin_path }}/kafka-topics --list --zookeeper $ZOOKEEPER_HOSTS`
 # help
 elif [ "$1" = "-h" ] ; then
@@ -18,7 +18,7 @@ elif [[ $# -ge 2 && "$1" = "-z" ]] ; then
   TOPICS=$@
 # topics as listed
 elif [ $# -ge 1 ] ; then
-	ZOOKEEPER_HOSTS={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
+	ZOOKEEPER_HOSTS={{ groups['zookeeper_private'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}
   TOPICS=$@
 fi
 
