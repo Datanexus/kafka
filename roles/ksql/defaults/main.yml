@@ -1,7 +1,7 @@
 # configuration variables for confluent ksql services
 ksql:
-  config_file: "{{ (got_root | default('yes')) | ternary('/etc/ksql/ksql-server.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/ksql/ksql-server.properties')) }}"
-  service_name: confluent-ksql
+  config_file: "{{ (got_root | default('yes')) | ternary('/etc/ksqldb/ksql-server.properties', (confluent_root + '/confluent-' + confluent.packages.confluent_version + '.' + confluent.packages.minor_release.split('-')[0] + '/etc/ksql/ksql-server.properties')) }}"
+  service_name: confluent-ksqldb
   systemd_override: /etc/systemd/system/confluent-ksql.service.d
   user_service: "{{ (got_root | default('yes')) | ternary('/usr/local/bin', confluent_root + '/bin')}}"
   user: "{{ (got_root | default('yes')) | ternary('cp-ksql', ansible_user) }}"

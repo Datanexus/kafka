@@ -219,7 +219,7 @@
   tasks:
     - import_role:
         name: kafka
-      
+
 - name: KAFKA OVERLAY | configuring confluent schema registry
   hosts: registry
   tags:

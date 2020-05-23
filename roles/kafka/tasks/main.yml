@@ -156,7 +156,7 @@
     when: not((kafka.config.transaction_state_log_replication_factor is undefined) or (kafka.config.transaction_state_log_replication_factor is none) or (kafka.config.transaction_state_log_replication_factor | trim == ''))  
     notify: restart broker
 
-  - name: KAFKA OVERLAY (BROKER) | overriding min.insync.replicas for {{ broker_service_name }} transaction topic
+  - name: KAFKA OVERLAY (BROKER) | configuring transaction.state.log.min.isr for {{ broker_service_name }} internal topics
     lineinfile:
       path: "{{ broker_config_file }}"
       regexp: '^transaction.state.log.min.isr='

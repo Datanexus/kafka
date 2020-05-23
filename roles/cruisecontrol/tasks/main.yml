@@ -115,7 +115,7 @@
 
     - name: CRUISE CONTROL OVERLAY (FRONT END) | downloading cruise control front end v{{ frontend_version | default(cruisecontrol.frontend_version) }}
       get_url:
-        url: "https://github.com/linkedin/cruise-control-ui/releases/download/v{{ frontend_version | default(cruisecontrol.frontend_version) }}-pre/cruise-control-ui.tar.gz"
+        url: "https://github.com/linkedin/cruise-control-ui/releases/download/v{{ frontend_version | default(cruisecontrol.frontend_version) }}/cruise-control-ui-{{ frontend_version | default(cruisecontrol.frontend_version) }}.tar.gz"
         dest: /tmp/cruise-control-ui.tar.gz
         mode: 0600
       when: not existing_package.stat.exists
