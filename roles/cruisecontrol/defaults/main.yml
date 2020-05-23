@@ -1,9 +1,9 @@
 # (c) 2016 DataNexus Inc.  All Rights Reserved.
 # Licensed software not for distribution
 cruisecontrol:
-  version: '2.0.36'
+  version: '2.0.101'
   frontend: yes
-  frontend_version: '0.2.0'
+  frontend_version: '0.3.4'
   source_dir: '/usr/local/src'
   config_file: /usr/local/src/cruise-control/config/cruisecontrol.properties
   ui_config_file: /usr/local/src/cruise-control/cruise-control-ui/dist/static/config.csv
@@ -14,6 +14,6 @@ cruisecontrol:
     port: '9090'
     log: /var/log/linkedin/cruise-control
   packages:
-    gradle_version: '5.2.1'
+    gradle_version: '6.2.2'
 os_packages:
-  git_version: '2.21.0'
+  git_version: '2.9.5'

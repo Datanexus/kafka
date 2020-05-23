@@ -49,7 +49,7 @@ kafka:
     offsets_topic_replication_factor: "{{ ((groups['kafka_broker'] | length) > 3) | ternary(3, groups['kafka_broker'] | length) }}"
     # default 1
     transaction_state_log_replication_factor:
-    transaction_state_log_min_isr: 2
+    transaction_state_log_min_isr: "{{ ((groups['kafka_broker'] | length) > 2) | ternary(2, groups['kafka_broker'] | length) }}"
     log_retention_hours: "{{ tenant_log_retention_hours | default(168) }}"
     # this logic is a little more complicated because log.retention.bytes is not enabled by default
     log_retention_bytes: "{{ (tenant_log_retention_bytes is defined | default('yes')) | ternary(tenant_log_retention_bytes, none) }}"

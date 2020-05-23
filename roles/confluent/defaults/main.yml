@@ -6,12 +6,10 @@ confluent:
     jline: '1.0-8'
     epel_version: '7-11'
     java_version: '1.8.0'
-    confluent_version: '5.3'
+    confluent_version: '5.5'
     minor_release: '0'
     scala_version: '2.12'
-    # confluent_version: '5.2'
     # minor_release: '1'
-    # scala_version: '2.12'
     # kafka_version isn't used under confluent, here mainly to match apache
     kafka_version: '2.1'
 confluent_os_releasever: '7'
