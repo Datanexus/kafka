@@ -13,6 +13,7 @@ cruisecontrol:
   config:
     port: '9090'
     log: /var/log/linkedin/cruise-control
+    sample_store_topic_replication_factor: "{{ ((groups['kafka_broker'] | length) > 2) | ternary(2, groups['kafka_broker'] | length) }}"
   packages:
     gradle_version: '6.2.2'
 os_packages:

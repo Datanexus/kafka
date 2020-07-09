@@ -168,6 +168,14 @@
       notify: restart cruisecontrol
       become_user: "{{ cruisecontrol_user }}"
     
+    - name: CRUISE CONTROL OVERLAY | configuring replication factor for {{ cruisecontrol.service_name }} samle store topic
+      lineinfile:
+        path: "{{ cruisecontrol.config_file }}"
+        regexp: '^sample.store.topic.replication.factor='
+        line: "sample.store.topic.replication.factor={{ cruisecontrol.config.sample_store_topic_replication_factor }}"
+      when: not((cruisecontrol.config.sample_store_topic_replication_factor is undefined) or (cruisecontrol.config.sample_store_topic_replication_factor is none) or (cruisecontrol.config.sample_store_topic_replication_factor | trim == ''))  
+      notify: restart cruisecontrol
+
     - name: CRUISE CONTROL OVERLAY | configuring zookeeper hosts
       lineinfile:
         path: "{{ cruisecontrol.config_file }}"
